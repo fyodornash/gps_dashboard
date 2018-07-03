@@ -4,7 +4,7 @@ import dash_html_components as html
 import pandas as pd
 import plotly.graph_objs as go
 from textwrap import dedent
-from garmin_tools import plot_training_loads
+from garmin_tools import plot_training_loads,zones_text_pace,zones_text_hr
 from time import time
 
 from pymongo import MongoClient,InsertOne,UpdateOne
@@ -23,22 +23,24 @@ dates = sorted(runs_date.keys())
 
 app = dash.Dash()
 
+app.css.append_css({'external_url':'https://codepen.io/chriddyp/pen/dZVMbK.css'})
+
 app.layout = html.Div([
-    dcc.Graph(id='graph-with-dropdown'),
-    dcc.Dropdown(
+    html.Div(dcc.Markdown(id = 'stress-md',className="twelve columns"),style={"text-align": "center"}),
+    html.Div(dcc.Graph(id='graph-with-dropdown'),className="six columns"),
+    html.Div(dcc.Graph(
+            id='graph2-with-dropdown'),
+        className="six columns"),
+    html.Div(children='Selected Run:',style={"text-align": "center",'fontSize':16},className="one column"),
+    html.Div(dcc.Dropdown(
         id='year-dropdown',
         value=dates[-1],
         options=[{'label':d,'value':d} for d in dates]
-    ),
-    dcc.Markdown(id = 'stress-md'),
-
-    dcc.Graph(
-        id='graph2-with-dropdown'),
-
-    dcc.Graph(
-        id='graph3',
-        figure=plot_training_loads(TSSes)
-    )        
+    ), className="two columns"),
+        
+    html.Div(dcc.Graph(id='graph3'),
+        className='twelve columns')
+            
 ])
 
 @app.callback(
@@ -107,17 +109,24 @@ def update_figure2(selected_date):
     traces.append(go.Bar(
         x=zones,
         y=[filtered_speed[zone] for zone in zones],
-        name='Pace Zones'
+        name='Pace Zones',
+        text = zones_text_pace()
         ))
     if filtered_hr:
-        traces.append(go.Bar(y =[filtered_hr[zone] for zone in zones],x = zones, name ='HR'))
+        traces.append(go.Bar(y =[filtered_hr[zone] for zone in zones],x = zones, name ='HR',text = zones_text_hr()))
 
     return {
         'data': traces,
         'layout': go.Layout(
-            title = 'Pace and HR Zones'
+            title = 'Pace and HR Zones',hovermode="closest",yaxis = {'title':'Minutes in Zone','hoverformat':'.2f'}
         )
     }
 
+@app.callback(
+    dash.dependencies.Output('graph3', 'figure'),
+    [dash.dependencies.Input('year-dropdown', 'value')])
+def update_figure3(selected_date):
+    return plot_training_loads(TSSes,selected_date)
+
 if __name__ == '__main__':
-    app.run_server(debug = True,port = 80)
+    app.run_server()

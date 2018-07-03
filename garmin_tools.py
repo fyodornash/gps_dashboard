@@ -10,6 +10,9 @@ import matplotlib.pyplot as plt
 from collections import ChainMap
 from sklearn import linear_model
 from datetime import timedelta,datetime
+from urllib.parse import urlencode
+from urllib.request import Request, urlopen
+
 
 import plotly.offline as py
 import plotly.graph_objs as go
@@ -103,14 +106,39 @@ def cardiac_drift(df):
     return 100*(x-1)
 
 
-# In[25]:
+
+def create_zones_increasing(a,b):
+    if a == '':
+        return '(< ' + b + ') bpm'
+    if b == '':
+        return '(> ' + a + ') bpm'
+    return '(' + ' - '.join([a,b])+ ') bpm'
+def zones_text_hr():
+    r = list(JF_BINS.astype('int').astype('str'))
+    r[0],r[-1]='',''
+    return [create_zones_increasing(a,b) for a,b in zip(r,r[1:])]
+
+def create_zones_decreasing(a,b):
+    if a == '':
+        return '(> ' + b + ') min/km'
+    if b == '':
+        return '(< ' + a + ') min/km'
+    return '(' + ' - '.join([a,b])+ ') min/km'
+
+def zones_text_pace():
+    minutes,seconds = divmod((3600/JF_SPEED_BINS).astype('int'),60)
+    t = [("%02d:%02d" % ( m, s)) for m,s in zip(list(minutes),list(seconds))]
+    t[0],t[-1]='',''
+    return [create_zones_decreasing(a,b) for a,b in zip(t,t[1:])]
+
+
+
+
+
 
 def get_hr_zones(df):
     y = pd.Series(pd.cut(df.Heartrate,bins=JF_BINS,labels=JF_ZONES,retbins=False))
     return y.value_counts().reindex(JF_ZONES)
-
-
-# In[26]:
 
 def get_speed_zones(df):
     y = pd.Series(pd.cut(df.Speed,bins=JF_SPEED_BINS,labels=JF_ZONES,retbins=False))
@@ -140,7 +168,7 @@ def plot_hr_zones(df):
 
 def plot_speed_zones(df):
     y = pd.Series(pd.cut(df.Speed,bins=JF_SPEED_BINS,labels=JF_ZONES,retbins=False))
-    trace1 = go.Bar(y = (y.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES)
+    trace1 = go.Bar(y = (y.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,text = zones_text_pace(JF_SPEED_BINS))
     data = [trace1]
     layout = go.Layout(title='Speed Zones')
     fig = go.Figure(data=data, layout=layout)
@@ -153,7 +181,7 @@ def plot_speed_zones(df):
 def plot_speed_vs_hr(df):
     speed = pd.Series(pd.cut(df.Speed,bins=JF_SPEED_BINS,labels=JF_ZONES,retbins=False))
     hr = pd.Series(pd.cut(df.Heartrate,bins=JF_BINS,labels=JF_ZONES,retbins=False))
-    trace1 = go.Bar(y = (speed.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,name ='Pace')
+    trace1 = go.Bar(y = (speed.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,name ='Pace',text = zones_text_pace(JF_SPEED_BINS))
     trace2 = go.Bar(y = (hr.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES, name ='HR')
     data = [trace1,trace2]
     layout = go.Layout(title='Pace and HR Zones <br>Stress Score : {0:.2f}<br>Cardiac Drift :{1:.2f}'.format(TSS(df),cardiac_drift(df)),barmode='group')
@@ -175,7 +203,9 @@ def get_TSSes():
     x[1]= pd.to_datetime(x[1])
     return np.array(x).tolist()
 
-def plot_training_loads(TSSes):
+def plot_training_loads(TSSes,date = None):
+    if date == None:
+        date = str(TSSes[-1][1]).split()[0]
     ATLs = training_loads(TSSes,ATL_WINDOW)
     CTLs = training_loads(TSSes,CTL_WINDOW)
     TSBs = [(b[0] - a[0],a[1]) for a,b in zip(ATLs,CTLs)]
@@ -186,14 +216,28 @@ def plot_training_loads(TSSes):
     table = np.array([ATLs[:,0],CTLs[:,0],TSBs[:,0],TSS_array,ATLs[:,1]])
     loads = pd.DataFrame(table.T,columns = ['Fatigue','Fitness','Form','Stress','Date'])
     loads.Date = pd.to_datetime(loads.Date)
-    dloads = loads[18:]
+    dloads = loads
+    start_date = str(TSSes[18][1]).split()[0]
     trace1 = go.Scatter(y = dloads['Fitness'],x =dloads['Date'],name = 'Fitness')
     trace2 = go.Scatter(y = dloads['Form'],x =dloads['Date'], name = 'Form')
     trace3 = go.Scatter(y = dloads['Fatigue'],x =dloads['Date'],name = 'Fatigue')
     trace4 = go.Scatter(y = dloads['Stress'],x =dloads['Date'],name = 'Stress')
 
     data = [trace1,trace2,trace3,trace4]
-    layout = go.Layout(title='Training Loads')
+    layout = go.Layout(title='Training Loads',annotations=[
+        dict(
+            x=date,
+            y=-0,
+            xref='x',
+            yref='y',
+            text='Selected Run',
+            showarrow=True,
+            arrowhead=0,
+            ax=0,
+            ay=-150
+        )],
+        xaxis = dict(range = [loads['Date'][18:].min(),loads['Date'].max()])
+     )
     fig = go.Figure(data=data, layout=layout)
     #py.plot(fig,filename='/home/michael/garmin/michael_data/training_loads')
     return fig
@@ -208,14 +252,24 @@ def update_TSSes(df):
         TSSes.append([t,df.Time[0]])
         x = pd.DataFrame(TSSes)
         x.to_csv('/home/michael/garmin/michael_data/test.csv',index=False,header=False)
-        insert_runs_mongo([create_record(df)])
+        record = create_record(df)
+        insert_runs_mongo([record])
+        post_runs_gcloud(record)
+        
 
 def insert_runs_mongo(records):
     result = db.runs.insert_many(records)
     print('Inserted records:')
     print(result.inserted_ids)
     
-        
+def post_runs_gcloud(record):   
+    url = 'http://35.203.124.245/upload' # Set destination URL here
+    request = Request(url, urlencode(record).encode())
+    json = urlopen(request).read().decode()
+    print('uploading to cloud')
+    print(json)        
+
+
 def create_record(df):
     record = {}
     record['df'] = df.to_dict('records')
