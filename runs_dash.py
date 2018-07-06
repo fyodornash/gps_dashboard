@@ -6,25 +6,42 @@ import plotly.graph_objs as go
 from textwrap import dedent
 from garmin_tools import plot_training_loads,zones_text_pace,zones_text_hr
 from time import time
+from datetime import datetime
+import json
 
 from pymongo import MongoClient,InsertOne,UpdateOne
 client = MongoClient('localhost',27017) 
 db = client.garmin
 
 start_time = time()
-runs = [run for run in db.runs.find()]
-runs_date = {run['time'].isoformat().split('T')[0]:pd.DataFrame(run['df']) for run in runs}
-speed_zones_date = {run['time'].isoformat().split('T')[0]:run['speed_zones'] for run in runs}
-hr_zones_date = {run['time'].isoformat().split('T')[0]:run.get('hr_zones') for run in runs}
-runs_dict= {run['time'].isoformat().split('T')[0]:run for run in runs}
-TSSes = [[run.get('TSS'),run['time']] for run in runs if run.get('TSS')]
+
+def df_run(run):
+    try:
+        return pd.DataFrame(run['df'])
+    except ValueError:
+        df = pd.DataFrame(json.loads(run['df'].replace("'",'"')))
+        df.Time = pd.to_datetime(df.Time)
+        return df 
+runs = [run for run in db.runsy.find()]
+runs_date = {str(run['time']).split()[0]:df_run(run) for run in runs}
+speed_zones_date = {str(run['time']).split()[0]:run['speed_zones'] for run in runs}
+hr_zones_date = {str(run['time']).split()[0]:run.get('hr_zones') for run in runs}
+runs_dict= {str(run['time']).split()[0]:run for run in runs}
+TSSes = [[run.get('TSS'),datetime.strptime(str(run['time']),'%Y-%m-%d %H:%M:%S')] for run in runs if run.get('TSS')]
 
 dates = sorted(runs_date.keys())
 
 app = dash.Dash()
-
 app.css.append_css({'external_url':'https://codepen.io/chriddyp/pen/dZVMbK.css'})
+app.config.update({
+        # as the proxy server will remove the prefi
+        'routes_pathname_prefix': '/dashboard/', 
 
+         # the front-end will prefix this string to the requests
+        # that are made to the proxy server
+        'requests_pathname_prefix': '/dashboard/'
+})
+server = app.server
 app.layout = html.Div([
     html.Div(dcc.Markdown(id = 'stress-md',className="twelve columns"),style={"text-align": "center"}),
     html.Div(dcc.Graph(id='graph-with-dropdown'),className="six columns"),
@@ -60,12 +77,12 @@ def update_figure(selected_date):
         print('updating data')
         start_time = time()
         global runs_date,runs,speed_zones_date,hr_zones_date,runs_dict,TSSes
-        runs = [run for run in db.runs.find()]
-        runs_date = {run['time'].isoformat().split('T')[0]:pd.DataFrame(run['df']) for run in runs}
-        speed_zones_date = {run['time'].isoformat().split('T')[0]:run['speed_zones'] for run in runs}
-        hr_zones_date = {run['time'].isoformat().split('T')[0]:run.get('hr_zones') for run in runs}
-        runs_dict= {run['time'].isoformat().split('T')[0]:run for run in runs}
-        TSSes = [[run.get('TSS'),run['time']] for run in runs if run.get('TSS')]
+        runs = [run for run in db.runsy.find()]
+        runs_date = {str(run['time']).split()[0]:df_run(run) for run in runs}
+        speed_zones_date = {str(run['time']).split()[0]:run['speed_zones'] for run in runs}
+        hr_zones_date = {str(run['time']).split()[0]:run.get('hr_zones') for run in runs}
+        runs_dict= {str(run['time']).split()[0]:run for run in runs}
+        TSSes = [[float(run.get('TSS')),run['time']] for run in runs if run.get('TSS')]
     filtered_df = runs_date[selected_date]
     traces = []
     for i in set([d for d in filtered_df.columns]) - set(['Time','time','Distance']):

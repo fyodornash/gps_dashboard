@@ -8,6 +8,7 @@ from textwrap import dedent
 from garmin_tools import plot_training_loads
 from time import time
 import json
+import datetime
 
 from pymongo import MongoClient,InsertOne,UpdateOne
 
@@ -24,7 +25,13 @@ app = Flask('update_db')
 def result():
     with MongoClient('localhost',27017) as client:
         db = client.garmin
-        record = {a:b for a,b in zip(request.form.keys(),request.form.values())}
+        record = request.get_json()
+        record['time'] = datetime.datetime.fromtimestamp(float(record['time'])).strftime('%Y-%m-%d %H:%M:%S')
+#        for k in record.keys():
+#            try:
+#                record[k] = json.loads(record[k].replace("'",'"'))
+#            except ValueError:
+#                pass
+        #record = {a:b for a,b in zip(request.form.keys(),request.form.values())}
         db.runsy.insert_many([record])
-    
-    return 'Received'
+        return 'Received'
