@@ -199,10 +199,10 @@ def TSS(df):
         
     return TSS
 
-def get_TSSes():
-    x= pd.read_csv('/home/michael/garmin/michael_data/test.csv',header=None)
-    x[1]= pd.to_datetime(x[1])
-    return np.array(x).tolist()
+def get_TSSes(db):
+    '''returns a list of list('TSS',str(datetime)) lists'''
+    rs = list(db.runs.find({},{'TSS':1,'time':1}))
+    return [[r.get('TSS'),datetime.strptime(str(r.get('time')),'%Y-%m-%d %H:%M:%S')] for r in rs if r.get('TSS')]
 
 def plot_training_loads(TSSes,date = None):
     if date == None:
@@ -288,7 +288,10 @@ def create_record(df):
     record['user_data'] = {'max_hr':MAXHR,'lt_hr':LTHR,'lt_speed':LT_SPEED}
     
     if 'Heartrate' in df.columns:
-        record['TSS'] = TSS(df)
+        tss = TSS(df)
+        record['TSS'] = tss
+        record['ATL'] = training_loads(tss,ATL_WINDOW)
+        record['CTL'] = training_loads(tss,CTL_WINDOW)
         record['hr_zones'] = get_hr_zones_minutes(df)
         record['cardiac_drift'] = cardiac_drift(df)
     return record        
