@@ -12,6 +12,7 @@ from sklearn import linear_model
 from datetime import timedelta,datetime
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
+import json
 
 
 import plotly.offline as py
@@ -168,7 +169,7 @@ def plot_hr_zones(df):
 
 def plot_speed_zones(df):
     y = pd.Series(pd.cut(df.Speed,bins=JF_SPEED_BINS,labels=JF_ZONES,retbins=False))
-    trace1 = go.Bar(y = (y.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,text = zones_text_pace(JF_SPEED_BINS))
+    trace1 = go.Bar(y = (y.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,text = zones_text_pace())
     data = [trace1]
     layout = go.Layout(title='Speed Zones')
     fig = go.Figure(data=data, layout=layout)
@@ -181,7 +182,7 @@ def plot_speed_zones(df):
 def plot_speed_vs_hr(df):
     speed = pd.Series(pd.cut(df.Speed,bins=JF_SPEED_BINS,labels=JF_ZONES,retbins=False))
     hr = pd.Series(pd.cut(df.Heartrate,bins=JF_BINS,labels=JF_ZONES,retbins=False))
-    trace1 = go.Bar(y = (speed.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,name ='Pace',text = zones_text_pace(JF_SPEED_BINS))
+    trace1 = go.Bar(y = (speed.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES,name ='Pace',text = zones_text_pace())
     trace2 = go.Bar(y = (hr.value_counts().reindex(JF_ZONES)/60),x =JF_ZONES, name ='HR')
     data = [trace1,trace2]
     layout = go.Layout(title='Pace and HR Zones <br>Stress Score : {0:.2f}<br>Cardiac Drift :{1:.2f}'.format(TSS(df),cardiac_drift(df)),barmode='group')
@@ -263,19 +264,29 @@ def insert_runs_mongo(records):
     print(result.inserted_ids)
     
 def post_runs_gcloud(record):   
-    url = 'http://35.203.124.245/upload' # Set destination URL here
-    request = Request(url, urlencode(record).encode())
-    json = urlopen(request).read().decode()
+    record['time'] = str(record['time'])
+    url = 'http://35.203.51.139/upload' # Set destination URL here
+    req = Request(url)
+    req.add_header('Content-Type', 'application/json; charset=utf-8')
+    jsondata = json.dumps(record)
+    jsondataasbytes = jsondata.encode('utf-8')   # needs to be bytes
+    req.add_header('Content-Length', len(jsondataasbytes))
+    #print (jsondataasbytes)
+    response = urlopen(req, jsondataasbytes)
+    #json2 = urlopen(response).read().decode()
     print('uploading to cloud')
-    print(json)        
+    print(response)
+    return response
 
 
 def create_record(df):
     record = {}
-    record['df'] = df.to_dict('records')
     record['time'] = df.Time[0]
+    df.Time = pd.DatetimeIndex(df.Time).astype(np.int64)// 10**9
+    record['df'] = df.to_dict('records')
     record['speed_zones'] = get_speed_zones_minutes(df)
     record['user_data'] = {'max_hr':MAXHR,'lt_hr':LTHR,'lt_speed':LT_SPEED}
+    
     if 'Heartrate' in df.columns:
         record['TSS'] = TSS(df)
         record['hr_zones'] = get_hr_zones_minutes(df)
