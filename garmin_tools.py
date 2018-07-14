@@ -199,32 +199,54 @@ def TSS(df):
         
     return TSS
 
-def get_TSSes(db):
-    '''returns a list of list('TSS',str(datetime)) lists'''
-    rs = list(db.runs.find({},{'TSS':1,'time':1}))
-    return [[r.get('TSS'),datetime.strptime(str(r.get('time')),'%Y-%m-%d %H:%M:%S')] for r in rs if r.get('TSS')]
+def get_training_log(week_df):
+    row = [0]*7
+    xs ={d.day:d.Stress for d in week_df.itertuples()}
+    for k in xs.keys():
+        row[k]=xs[k]
+    return row
+
+def get_training_log_with_text(week_df):
+    row = [0]*7
+    text_row = ['Rest Day']*7
+    xs ={d.day:[d.TSS,d.text] for d in week_df.itertuples()}
+    for k in xs.keys():
+        row[k]=xs[k][0]
+        text_row[k]=xs[k][1]
+    return row,text_row
+
+def get_training_summary(db):
+    '''returns a list of ('TSS',str(datetime),duration,distance) dicts'''
+    query = {'$project':{'df':{'$slice':['$df',-1]},'TSS':1,'time':1}}
+    sort = {'$sort':{'time':1}}
+    test = list(db.runs.aggregate([query,sort]))
+    return [{'TSS':t.get('TSS'),'time':datetime.strptime(str(t['time']),'%Y-%m-%d %H:%M:%S'),'Distance':float(t['df'][0]['Distance'])/1000,'duration':float(t['df'][0]['time'])/60} for t in test if t.get('TSS')]
+
+def get_TSSes():
+    x= pd.read_csv('/home/michael/garmin/michael_data/test.csv',header=None)
+    x[1]= pd.to_datetime(x[1])
+    return np.array(x).tolist()
 
 def plot_training_loads(TSSes,date = None):
     if date == None:
         date = str(TSSes[-1][1]).split()[0]
-    ATLs = training_loads(TSSes,ATL_WINDOW)
-    CTLs = training_loads(TSSes,CTL_WINDOW)
-    TSBs = [(b[0] - a[0],a[1]) for a,b in zip(ATLs,CTLs)]
-    TSS_array = np.array(TSSes)[:,0]
-    ATLs = np.array(ATLs)
-    CTLs = np.array(CTLs)
-    TSBs = np.array(TSBs)
-    table = np.array([ATLs[:,0],CTLs[:,0],TSBs[:,0],TSS_array,ATLs[:,1]])
-    loads = pd.DataFrame(table.T,columns = ['Fatigue','Fitness','Form','Stress','Date'])
-    loads.Date = pd.to_datetime(loads.Date)
-    dloads = loads
-    start_date = str(TSSes[18][1]).split()[0]
-    trace1 = go.Scatter(y = dloads['Fitness'],x =dloads['Date'],name = 'Fitness')
-    trace2 = go.Scatter(y = dloads['Form'],x =dloads['Date'], name = 'Form')
-    trace3 = go.Scatter(y = dloads['Fatigue'],x =dloads['Date'],name = 'Fatigue')
-    trace4 = go.Scatter(y = dloads['Stress'],x =dloads['Date'],name = 'Stress')
 
-    data = [trace1,trace2,trace3,trace4]
+    TL_df = pd.DataFrame(get_training_summary(db))
+    CTL = pd.DataFrame(training_loads(TSSes,42),columns = ['CTL','time'])
+    ATL = pd.DataFrame(training_loads(TSSes,7),columns = ['ATL','time'])
+    TL_df['Fatigue']=ATL.ATL
+    TL_df['Fitness']=CTL.CTL
+    TL_df['Form']=TL_df.Fitness - TL_df.Fatigue 
+    TL_df['text'] = TL_df.Distance.round(2).astype('str') + ' km<br>' + TL_df.duration.round(2).astype('str') + ' mins'
+
+    start_date = str(TSSes[18][1]).split()[0]
+    cols = ['Form','Fatigue','Fitness','TSS']
+
+    traces = [go.Scatter(y = TL_df[col],x =TL_df['time'],name = col) if not col =='TSS'
+             else go.Scatter(y = TL_df[col],x =TL_df['time'],name = col,text = TL_df['text']) for col in cols]
+
+
+    data = traces
     layout = go.Layout(title='Training Loads',annotations=[
         dict(
             x=date,
@@ -237,10 +259,10 @@ def plot_training_loads(TSSes,date = None):
             ax=0,
             ay=-150
         )],
-        xaxis = dict(range = [loads['Date'][18:].min(),loads['Date'].max()])
+        xaxis = dict(range = [TL_df['time'][18],TL_df['time'].max()])
      )
     fig = go.Figure(data=data, layout=layout)
-    #py.plot(fig,filename='/home/michael/garmin/michael_data/training_loads')
+
     return fig
 
 def update_TSSes(df):
