@@ -57,7 +57,7 @@ app.layout = html.Div([
     html.Div(dcc.Graph(id='graph4'),
         className='9 columns'),
     html.Div([
-            dcc.Markdown(d("""
+            dcc.Markdown(dedent("""
                 **Zoom and Relayout Data**
 
                 Click and drag on the graph to zoom or click on the zoom
