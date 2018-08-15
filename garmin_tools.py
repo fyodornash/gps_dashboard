@@ -228,10 +228,11 @@ def get_training_summary(db):
     test = list(db.runsy.aggregate([query,sort]))
     return [{'TSS':t.get('TSS'),'time':datetime.strptime(str(t['time']),'%Y-%m-%d %H:%M:%S'),'Distance':float(t['df'][0]['Distance'])/1000,'duration':float(t['df'][0]['time'])/60} for t in test if t.get('TSS')]
 
-def get_TSSes():
-    x= pd.read_csv('/home/michael/garmin/michael_data/test.csv',header=None)
-    x[1]= pd.to_datetime(x[1])
-    return np.array(x).tolist()
+
+def get_TSSes(db):
+    '''returns a list of list('TSS',str(datetime)) lists'''
+    rs = list(db.runs.find({},{'TSS':1,'time':1}))
+    return [[r.get('TSS'),datetime.strptime(str(r.get('time')),'%Y-%m-%d %H:%M:%S')] for r in rs if r.get('TSS')]
 
 def plot_training_loads(TSSes,date = None):
     TL_df = pd.DataFrame(get_training_summary(db))
