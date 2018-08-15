@@ -31,6 +31,15 @@ TSSes = [[tss,date] for [tss,date,c,d] in get_training_summary(db)]
 
 dates = sorted(runs_date.keys())
 
+styles = {
+    'pre': {
+        'border': 'thin lightgrey solid',
+        'overflowX': 'scroll'
+    }
+}
+
+
+
 app = dash.Dash()
 app.css.append_css({'external_url':'https://codepen.io/chriddyp/pen/dZVMbK.css'})
 app.config.update({
