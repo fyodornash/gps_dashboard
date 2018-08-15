@@ -232,7 +232,7 @@ def get_training_summary(db):
 def get_TSSes(db):
     '''returns a list of list('TSS',str(datetime)) lists'''
     sort = {'$sort':{'time':1}}
-    rs = list(db.runsy.aggregate([{},sort]))
+    rs = list(db.runsy.aggregate([{'$match':{}},sort]))
 #    rs = list(db.runs.find({},{'TSS':1,'time':1}))
     return [[r.get('TSS'),datetime.strptime(str(r.get('time')),'%Y-%m-%d %H:%M:%S')] for r in rs if r.get('TSS')]
 
