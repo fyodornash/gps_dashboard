@@ -225,7 +225,7 @@ def get_training_summary(db):
     '''returns a list of ('TSS',str(datetime),duration,distance) dicts'''
     query = {'$project':{'df':{'$slice':['$df',-1]},'TSS':1,'time':1}}
     sort = {'$sort':{'time':1}}
-    test = list(db.runs.aggregate([query,sort]))
+    test = list(db.runsy.aggregate([query,sort]))
     return [{'TSS':t.get('TSS'),'time':datetime.strptime(str(t['time']),'%Y-%m-%d %H:%M:%S'),'Distance':float(t['df'][0]['Distance'])/1000,'duration':float(t['df'][0]['time'])/60} for t in test if t.get('TSS')]
 
 def get_TSSes():
@@ -287,7 +287,7 @@ def update_TSSes(df):
 
 
 def insert_runs_mongo(records):
-    result = db.runs.insert_many(records)
+    result = db.runsy.insert_many(records)
     print('Inserted records:')
     print(result.inserted_ids)
 
@@ -310,7 +310,7 @@ def post_runs_gcloud(record):
 def get_training_summary(db):
     '''returns a list of ('TSS',str(datetime),duration,distance) dicts'''
     query = {'$project':{'df':{'$slice':['$df',-1]},'TSS':1,'time':1}}
-    test = list(db.runs.aggregate([query]))
+    test = list(db.runsy.aggregate([query]))
     return [{'TSS':t.get('TSS'),'time':datetime.strptime(str(t['time']),'%Y-%m-%d %H:%M:%S'),'Distance':float(t['df'][0]['Distance'])/1000,'duration':float(t['df'][0]['time'])/60} for t in test if t.get('TSS')]
 
 
