@@ -27,7 +27,7 @@ runs_date = {str(run['time']).split()[0]:df_run(run) for run in runs}
 speed_zones_date = {str(run['time']).split()[0]:run['speed_zones'] for run in runs}
 hr_zones_date = {str(run['time']).split()[0]:run.get('hr_zones') for run in runs}
 runs_dict= {str(run['time']).split()[0]:run for run in runs}
-TSSes = [[run.get('TSS'),datetime.strptime(str(run['time']),'%Y-%m-%d %H:%M:%S')] for run in runs if run.get('TSS')]
+TSSes = get_TSSes(db)
 
 dates = sorted(runs_date.keys())
 

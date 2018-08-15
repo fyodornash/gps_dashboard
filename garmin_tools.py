@@ -234,10 +234,11 @@ def get_TSSes():
     return np.array(x).tolist()
 
 def plot_training_loads(TSSes,date = None):
+    TL_df = pd.DataFrame(get_training_summary(db))
+    TSSes = np.array(TL_df[['TSS','time']])
+
     if date == None:
         date = str(TSSes[-1][1]).split()[0]
-
-    TL_df = pd.DataFrame(get_training_summary(db))
     CTL = pd.DataFrame(training_loads(TSSes,42),columns = ['CTL','time'])
     ATL = pd.DataFrame(training_loads(TSSes,7),columns = ['ATL','time'])
     TL_df['Fatigue']=ATL.ATL
