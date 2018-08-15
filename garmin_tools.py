@@ -19,9 +19,9 @@ import plotly.offline as py
 import plotly.graph_objs as go
 pd.core.common.is_list_like = pd.api.types.is_list_like
 import pandas_datareader.data as web
-    
+
 from pymongo import MongoClient,InsertOne,UpdateOne
-client = MongoClient('localhost',27017) 
+client = MongoClient('localhost',27017)
 db = client.garmin
 
 # In[2]:
@@ -52,23 +52,23 @@ def get_track(x):
 # In[20]:
 def create_df(clean_dps):
     df = pd.DataFrame()
-    
+
     try:
         time = [element['Time'].text for element in clean_dps]
         df['Time']=time
     except KeyError:
-        print('no time data for index {0}'.format(i))  
+        print('no time data for index {0}'.format(i))
     try:
         altitude = [float(element['AltitudeMeters'].text) for element in clean_dps]
         df['Altitude']=altitude
     except KeyError:
-        print('no altitude data for index {0}'.format(i))  
+        print('no altitude data for index {0}'.format(i))
     try:
         distance = [float(element['DistanceMeters'].text) for element in clean_dps]
         df['Distance'] = distance
     except KeyError:
         print('no distance data for index {0}'.format(i))
-    
+
     try:
         heart_rate =[float(element['HeartRateBpm'].getchildren()[0].text) for element in clean_dps]
         df['Heartrate'] = heart_rate
@@ -88,14 +88,14 @@ def clean_df(df,gaussian):
     y[5:] = np.convolve(gaussian,y)[24:]
     y[5:] = np.convolve(gaussian,y)[24:]
     df['Speed'] = y*3.6
-    #df['Gradient']
+    # df['Gradient']
     if 'Heartrate' in df.columns:
         z = np.convolve(gaussian,df.Heartrate)
         df.Heartrate = z[19:]
         df['Efficiency'] = df.Speed*1000/(df.Heartrate*60) #meters/beat
         df.Efficiency = df.Efficiency.fillna(0)
         df.Efficiency[df.Efficiency>2] =0
-        
+
     return df
 
 def cardiac_drift(df):
@@ -103,7 +103,7 @@ def cardiac_drift(df):
     df1 = df[df.index<halfway]
     df2 = df[df.index>=halfway]
     x = (df1['Distance'].max()/(np.average(df1.Heartrate)*max(df1.time)/60))/(df2['Distance'].max()/(np.average(df2.Heartrate)*max(df2.time)/60))
-    
+
     return 100*(x-1)
 
 
@@ -113,20 +113,26 @@ def create_zones_increasing(a,b):
         return '(< ' + b + ') bpm'
     if b == '':
         return '(> ' + a + ') bpm'
-    return '(' + ' - '.join([a,b])+ ') bpm'
+    return '(' + ' - '.join([a, b])+ ') bpm'
+
+
 def zones_text_hr():
     r = list(JF_BINS.astype('int').astype('str'))
     r[0],r[-1]='',''
     return [create_zones_increasing(a,b) for a,b in zip(r,r[1:])]
 
-def create_zones_decreasing(a,b):
+
+def create_zones_decreasing(a, b):
+
     if a == '':
         return '(> ' + b + ') min/km'
     if b == '':
         return '(< ' + a + ') min/km'
-    return '(' + ' - '.join([a,b])+ ') min/km'
+    return '(' + ' - '.join([a, b]) + ') min/km'
+
 
 def zones_text_pace():
+
     minutes,seconds = divmod((3600/JF_SPEED_BINS).astype('int'),60)
     t = [("%02d:%02d" % ( m, s)) for m,s in zip(list(minutes),list(seconds))]
     t[0],t[-1]='',''
@@ -196,7 +202,7 @@ def TSS(df):
     TSS = 0
     for zone in x.keys():
         TSS += HR_TSS[zone]*x[zone]/3600
-        
+
     return TSS
 
 def get_training_log(week_df):
@@ -236,7 +242,7 @@ def plot_training_loads(TSSes,date = None):
     ATL = pd.DataFrame(training_loads(TSSes,7),columns = ['ATL','time'])
     TL_df['Fatigue']=ATL.ATL
     TL_df['Fitness']=CTL.CTL
-    TL_df['Form']=TL_df.Fitness - TL_df.Fatigue 
+    TL_df['Form']=TL_df.Fitness - TL_df.Fatigue
     TL_df['text'] = TL_df.Distance.round(2).astype('str') + ' km<br>' + TL_df.duration.round(2).astype('str') + ' mins'
 
     start_date = str(TSSes[18][1]).split()[0]
@@ -278,14 +284,14 @@ def update_TSSes(df):
         record = create_record(df)
         insert_runs_mongo([record])
         post_runs_gcloud(record)
-        
+
 
 def insert_runs_mongo(records):
     result = db.runs.insert_many(records)
     print('Inserted records:')
     print(result.inserted_ids)
-    
-def post_runs_gcloud(record):   
+
+def post_runs_gcloud(record):
     record['time'] = str(record['time'])
     url = 'http://35.203.51.139/upload' # Set destination URL here
     req = Request(url)
@@ -301,14 +307,33 @@ def post_runs_gcloud(record):
     return response
 
 
+def get_training_summary(db):
+    '''returns a list of ('TSS',str(datetime),duration,distance) dicts'''
+    query = {'$project':{'df':{'$slice':['$df',-1]},'TSS':1,'time':1}}
+    test = list(db.runs.aggregate([query]))
+    return [{'TSS':t.get('TSS'),'time':datetime.strptime(str(t['time']),'%Y-%m-%d %H:%M:%S'),'Distance':float(t['df'][0]['Distance'])/1000,'duration':float(t['df'][0]['time'])/60} for t in test if t.get('TSS')]
+
+
+def get_training_log_with_text_and_date(week_df):
+    row = [0]*7
+    text_row = ['Rest Day']*7
+    dates_row = [None]*7
+    xs ={d.day:[d.TSS,d.text,d.time] for d in week_df.itertuples()}
+    for k in xs.keys():
+        row[k]=xs[k][0]
+        text_row[k]=xs[k][1]
+        dates_row[k]=xs[k][2]
+    return (row,text_row,dates_row)
+
+
 def create_record(df):
     record = {}
     record['time'] = df.Time[0]
     df.Time = pd.DatetimeIndex(df.Time).astype(np.int64)// 10**9
     record['df'] = df.to_dict('records')
     record['speed_zones'] = get_speed_zones_minutes(df)
-    record['user_data'] = {'max_hr':MAXHR,'lt_hr':LTHR,'lt_speed':LT_SPEED}
-    
+    record['user_data'] = {'max_hr': MAXHR, 'lt_hr': LTHR, 'lt_speed': LT_SPEED}
+
     if 'Heartrate' in df.columns:
         tss = TSS(df)
         record['TSS'] = tss
@@ -316,8 +341,8 @@ def create_record(df):
         record['CTL'] = training_loads(tss,CTL_WINDOW)
         record['hr_zones'] = get_hr_zones_minutes(df)
         record['cardiac_drift'] = cardiac_drift(df)
-    return record        
-        
+    return record
+
 def analize_run(df):
     print('Stress Score : {0:.2f}'.format(TSS(df)))
     print('Cardiac Drift : {0:.2f}'.format(cardiac_drift(df)))
