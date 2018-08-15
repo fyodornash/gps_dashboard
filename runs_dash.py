@@ -55,7 +55,18 @@ app.layout = html.Div([
         options=[{'label':d,'value':d} for d in dates]
     ), className="two columns"),
     html.Div(dcc.Graph(id='graph4'),
-        className='twelve columns'),
+        className='9 columns'),
+    html.Div([
+            dcc.Markdown(d("""
+                **Zoom and Relayout Data**
+
+                Click and drag on the graph to zoom or click on the zoom
+                buttons in the graph's menu bar.
+                Clicking on legend items will also fire
+                this event.
+            """)),
+            html.Pre(id='click-data', style=styles['pre']),
+        ], className='three columns'),
     html.Div(dcc.Graph(id='graph3'),
         className='twelve columns')
 
@@ -145,6 +156,13 @@ def update_figure2(selected_date):
     [dash.dependencies.Input('year-dropdown', 'value')])
 def update_figure3(selected_date):
     return plot_training_loads(TSSes,selected_date)
+
+
+@app.callback(
+    Output('click-data', 'children'),
+    [Input('graph4', 'clickData')])
+def display_click_data(clickData):
+    return json.dumps(clickData, indent=2)
 
 
 @app.callback(
