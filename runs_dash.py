@@ -168,8 +168,8 @@ def update_figure3(selected_date):
 
 
 @app.callback(
-    Output('click-data', 'children'),
-    [Input('graph4', 'clickData')])
+    dash.dependencies.Output('click-data', 'children'),
+    [dash.dependencies.Input('graph4', 'clickData')])
 def display_click_data(clickData):
     return json.dumps(clickData, indent=2)
 
