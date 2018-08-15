@@ -326,6 +326,41 @@ def get_training_log_with_text_and_date(week_df):
     return (row,text_row,dates_row)
 
 
+def heat_map_running(df):
+    df['text'] = df.Distance.round(2).astype('str') + ' kms<br>' + df.duration.round(2).astype('str') + ' mins'
+    df['week'] = df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year,x.week,1),'%Y-%W-%w')).astype('str')
+    df['week2'] ='Week of ' + df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year,x.week,1),'%Y-%W-%w')).apply(lambda y: y.strftime('%B %-d'))
+
+    df['day'] =df.time.apply(lambda x: x.dayofweek)
+    df = df[df.week.isin(df.week.unique()[-4:])]
+    colorscale = [
+        [0,'rgba(198,198,198,1)'],
+        [1,'rgb(178, 34, 34)']
+    ]
+
+    z = []
+    texts = []
+    custom_data = []
+    x=['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday','Saturday','Sunday']
+    for week in df.week.unique():
+        filt_df = df[df.week==week]
+        z_row,t_row,c_row = get_training_log_with_text_and_date(filt_df)
+        z.append(z_row)
+        texts.append(t_row)
+        custom_data.append(c_row)
+
+    trace = go.Heatmap(z=z,
+                       x=x,
+                       y=df.week2.unique(),
+                       text=texts,
+                       hoverinfo='z+text',
+                       colorscale=colorscale,
+                       customdata=custom_data)
+    layout = go.Layout(title='Training Stress Calendar',margin=dict(l=120))
+    data=[trace]
+    return go.Figure(data=data,layout=layout)
+
+
 def create_record(df):
     record = {}
     record['time'] = df.Time[0]
