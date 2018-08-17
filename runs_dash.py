@@ -63,7 +63,7 @@ app.layout = html.Div([
         value=dates[-1],
         options=[{'label':d,'value':d} for d in dates]
     ), className="two columns"),
-    html.Div(
+    html.Div([
         html.Div(dcc.Graph(id='graph4'),
             className='nine columns'),
         html.Div([
@@ -76,7 +76,7 @@ app.layout = html.Div([
                 this event.
             """)),
             html.Pre(id='click-data', style=styles['pre']),
-        ], className='three columns'), className= 'twelve columns')
+        ], className='three columns')], className= 'twelve columns')
     ,
     html.Div(dcc.Graph(id='graph3'),
         className='twelve columns')
