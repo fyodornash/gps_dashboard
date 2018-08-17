@@ -68,12 +68,7 @@ app.layout = html.Div([
             className='nine columns'),
         html.Div([
             dcc.Markdown(dedent("""
-                **Zoom and Relayout Data**
-
-                Click and drag on the graph to zoom or click on the zoom
-                buttons in the graph's menu bar.
-                Clicking on legend items will also fire
-                this event.
+                **Selected Run**
             """)),
             html.Pre(id='click-data', style=styles['pre']),
         ], className='three columns')], className= 'twelve columns')
@@ -92,7 +87,7 @@ def update_dropdown(_):
 
 @app.callback(
     dash.dependencies.Output('graph-with-dropdown', 'figure'),
-    [dash.dependencies.Input('year-dropdown', 'value')])
+    [dash.dependencies.Input('graph4', 'clickData')])
 def update_figure(selected_date):
     global start_time
     delta_time = time()-start_time
@@ -126,8 +121,7 @@ def update_figure(selected_date):
 
 @app.callback(
     dash.dependencies.Output(component_id='stress-md', component_property='children'),
-    [dash.dependencies.Input('year-dropdown', 'value')]
-)
+    [dash.dependencies.Input('graph4', 'clickData')])
 def update_output_md(selected_date):
     if runs_dict[selected_date].get('TSS'):
         return dedent('''
@@ -138,7 +132,7 @@ def update_output_md(selected_date):
 
 @app.callback(
     dash.dependencies.Output('graph2-with-dropdown', 'figure'),
-    [dash.dependencies.Input('year-dropdown', 'value')])
+    [dash.dependencies.Input('graph4', 'clickData')])
 def update_figure2(selected_date):
     filtered_speed = speed_zones_date[selected_date]
     filtered_hr = hr_zones_date[selected_date]
@@ -173,7 +167,7 @@ def update_figure3(selected_date):
     dash.dependencies.Output('click-data', 'children'),
     [dash.dependencies.Input('graph4', 'clickData')])
 def display_click_data(clickData):
-    return json.dumps(clickData['points'][0]['text'].split('<br>')[2], indent=2)
+    return json.dumps(clickData['points'][0]['text'].split('<br>')[2].split(' ')[0], indent=2)
 
 
 @app.callback(
