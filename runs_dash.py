@@ -147,10 +147,13 @@ def update_figure2(clickData):
         x=zones,
         y=[filtered_speed[zone] for zone in zones],
         name='Pace Zones',
-        text = zones_text_pace()
+        text = zones_text_pace(),
+        marker = dict(color = '#222222')
         ))
     if filtered_hr:
-        traces.append(go.Bar(y =[filtered_hr[zone] for zone in zones],x = zones, name ='HR',text = zones_text_hr()))
+        traces.append(go.Bar(y =[filtered_hr[zone] for zone in zones],
+            x = zones, name ='HR', text = zones_text_hr(),
+            marker = dict(color = '#be3030')))
 
     return {
         'data': traces,

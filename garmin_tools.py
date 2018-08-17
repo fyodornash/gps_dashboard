@@ -238,6 +238,7 @@ def get_TSSes(db):
 
 def plot_training_loads(TSSes,date = None):
     TL_df = pd.DataFrame(get_training_summary(db))
+    TL_df = TL_df.sort_values(by = 'time')
     TSSes = np.array(TL_df[['TSS','time']])
 
     if date == None:
