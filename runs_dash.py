@@ -28,7 +28,7 @@ speed_zones_date = {str(run['time']).split()[0]:run['speed_zones'] for run in ru
 hr_zones_date = {str(run['time']).split()[0]:run.get('hr_zones') for run in runs}
 runs_dict= {str(run['time']).split()[0]:run for run in runs}
 TSSes = [[tss,date] for [tss,date,c,d] in get_training_summary(db)]
-
+colors = ['#222222','#be3030','ff7100','7b3c3c','db5f29']
 dates = sorted(runs_date.keys())
 
 styles = {
@@ -104,12 +104,13 @@ def update_figure(clickData):
         TSSes = [[tss,date] for [tss,date,c,d] in get_training_summary(db)]
     filtered_df = runs_date[selected_date]
     traces = []
-    for i in set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance']):
+    for i,color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])),colors):
 
         traces.append(go.Scatter(
             x=filtered_df['Distance'],
             y=filtered_df[i],
-            name=i
+            name=i,
+            line = dict(color = color)
         ))
 
     return {
@@ -148,12 +149,12 @@ def update_figure2(clickData):
         y=[filtered_speed[zone] for zone in zones],
         name='Pace Zones',
         text = zones_text_pace(),
-        marker = dict(color = '#222222')
+        marker = dict(color = colors[0])
         ))
     if filtered_hr:
         traces.append(go.Bar(y =[filtered_hr[zone] for zone in zones],
             x = zones, name ='HR', text = zones_text_hr(),
-            marker = dict(color = '#be3030')))
+            marker = dict(color = colors[1])))
 
     return {
         'data': traces,
