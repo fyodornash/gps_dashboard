@@ -269,7 +269,9 @@ def plot_training_loads(TSSes,date = None):
             ax=0,
             ay=-150
         )],
-        xaxis = dict(range = [TL_df['time'][18],TL_df['time'].max()])
+        xaxis = dict(
+            range = [TL_df['time'][18],TL_df['time'].max()],
+            type = 'date')
      )
     fig = go.Figure(data=data, layout=layout)
 
@@ -322,16 +324,17 @@ def get_training_log_with_text_and_date(week_df):
     row = [0]*7
     text_row = ['Rest Day']*7
     dates_row = [None]*7
-    xs ={d.day:[d.TSS,d.text,d.time] for d in week_df.itertuples()}
+    xs = {d.day: [d.TSS, d.text, d.time] for d in week_df.itertuples()}
     for k in xs.keys():
-        row[k]=xs[k][0]
-        text_row[k]=xs[k][1]
-        dates_row[k]=xs[k][2]
+        row[k] = xs[k][0]
+        text_row[k] = xs[k][1]
+        dates_row[k] = xs[k][2]
+
     return (row,text_row,dates_row)
 
 
 def heat_map_running(df):
-    df['text'] = df.Distance.round(2).astype('str') + ' kms<br>' + df.duration.round(2).astype('str') + ' mins'
+    df['text'] = df.Distance.round(2).astype('str') + ' kms<br>' + df.duration.round(2).astype('str') + ' mins' + '<br>' + df.time.astype('str')
     df['week'] = df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year,x.week,1),'%Y-%W-%w')).astype('str')
     df['week2'] ='Week of ' + df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year,x.week,1),'%Y-%W-%w')).apply(lambda y: y.strftime('%B %-d'))
 

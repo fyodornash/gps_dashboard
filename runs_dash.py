@@ -9,8 +9,8 @@ from time import time
 from datetime import datetime
 import json
 
-from pymongo import MongoClient,InsertOne,UpdateOne
-client = MongoClient('localhost',27017)
+from pymongo import MongoClient
+client = MongoClient('localhost', 27017)
 db = client.garmin
 
 start_time = time()
@@ -64,7 +64,7 @@ app.layout = html.Div([
         options=[{'label':d,'value':d} for d in dates]
     ), className="two columns"),
     html.Div(dcc.Graph(id='graph4'),
-        className='9 columns'),
+        className='nine columns'),
     html.Div([
             dcc.Markdown(dedent("""
                 **Zoom and Relayout Data**
@@ -97,16 +97,16 @@ def update_figure(selected_date):
     if delta_time>8000:
         print('updating data')
         start_time = time()
-        global runs_date,runs,speed_zones_date,hr_zones_date,runs_dict,TSSes
+        global runs_date, runs, speed_zones_date, hr_zones_date, runs_dict, TSSes
         runs = [run for run in db.runsy.find()]
         runs_date = {str(run['time']).split()[0]:df_run(run) for run in runs}
         speed_zones_date = {str(run['time']).split()[0]:run['speed_zones'] for run in runs}
         hr_zones_date = {str(run['time']).split()[0]:run.get('hr_zones') for run in runs}
         runs_dict= {str(run['time']).split()[0]:run for run in runs}
-        TSSes = [[float(run.get('TSS')),run['time']] for run in runs if run.get('TSS')]
+        TSSes = [[tss,date] for [tss,date,c,d] in get_training_summary(db)]
     filtered_df = runs_date[selected_date]
     traces = []
-    for i in set([d for d in filtered_df.columns]) - set(['Time','time','Distance']):
+    for i in set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance']):
 
         traces.append(go.Scatter(
             x=filtered_df['Distance'],
@@ -171,7 +171,7 @@ def update_figure3(selected_date):
     dash.dependencies.Output('click-data', 'children'),
     [dash.dependencies.Input('graph4', 'clickData')])
 def display_click_data(clickData):
-    return json.dumps(clickData, indent=2)
+    return json.dumps(clickData['points'][0], indent=2)
 
 
 @app.callback(
