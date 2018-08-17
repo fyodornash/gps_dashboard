@@ -55,7 +55,7 @@ app.layout = html.Div([
     html.Div(dcc.Markdown(id = 'stress-md',className="twelve columns"),style={"text-align": "center"}),
     html.Div(dcc.Graph(id='graph-with-dropdown'),className="six columns"),
     html.Div(dcc.Graph(
-            id='graph2-with-dropdown'),
+        id='graph2-with-dropdown'),
         className="six columns"),
     html.Div(children='Selected Run:',style={"text-align": "center",'fontSize':16},className="one column"),
     html.Div(dcc.Dropdown(
@@ -63,9 +63,10 @@ app.layout = html.Div([
         value=dates[-1],
         options=[{'label':d,'value':d} for d in dates]
     ), className="two columns"),
-    html.Div(dcc.Graph(id='graph4'),
-        className='nine columns'),
-    html.Div([
+    html.Div(
+        html.Div(dcc.Graph(id='graph4'),
+            className='nine columns'),
+        html.Div([
             dcc.Markdown(dedent("""
                 **Zoom and Relayout Data**
 
@@ -75,7 +76,8 @@ app.layout = html.Div([
                 this event.
             """)),
             html.Pre(id='click-data', style=styles['pre']),
-        ], className='three columns'),
+        ], className='three columns'), className= 'twelve columns')
+    ,
     html.Div(dcc.Graph(id='graph3'),
         className='twelve columns')
 
@@ -171,7 +173,7 @@ def update_figure3(selected_date):
     dash.dependencies.Output('click-data', 'children'),
     [dash.dependencies.Input('graph4', 'clickData')])
 def display_click_data(clickData):
-    return json.dumps(clickData['points'][0], indent=2)
+    return json.dumps(clickData['points'][0]['text'].split('<br>')[2], indent=2)
 
 
 @app.callback(
