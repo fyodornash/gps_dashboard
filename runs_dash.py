@@ -88,7 +88,8 @@ def update_dropdown(_):
 @app.callback(
     dash.dependencies.Output('graph-with-dropdown', 'figure'),
     [dash.dependencies.Input('graph4', 'clickData')])
-def update_figure(selected_date):
+def update_figure(clickData):
+    selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
     global start_time
     delta_time = time()-start_time
     if delta_time>8000:
@@ -122,7 +123,8 @@ def update_figure(selected_date):
 @app.callback(
     dash.dependencies.Output(component_id='stress-md', component_property='children'),
     [dash.dependencies.Input('graph4', 'clickData')])
-def update_output_md(selected_date):
+def update_output_md(clickData):
+    selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
     if runs_dict[selected_date].get('TSS'):
         return dedent('''
 # Stress Score : **{0:.2f}** ___________  Cardiac Drift : {1:.2f}
@@ -133,7 +135,8 @@ def update_output_md(selected_date):
 @app.callback(
     dash.dependencies.Output('graph2-with-dropdown', 'figure'),
     [dash.dependencies.Input('graph4', 'clickData')])
-def update_figure2(selected_date):
+def update_figure2(clickData):
+    selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
     filtered_speed = speed_zones_date[selected_date]
     filtered_hr = hr_zones_date[selected_date]
 
