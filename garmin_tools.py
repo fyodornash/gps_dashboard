@@ -9,15 +9,12 @@ from datetime import timedelta,datetime
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
-
+from pymongo import MongoClient
 
 import plotly.offline as py
 import plotly.graph_objs as go
 pd.core.common.is_list_like = pd.api.types.is_list_like
-print('making mongo connection in garmin_tools')
-from pymongo import MongoClient,InsertOne,UpdateOne
-client = MongoClient('localhost',27017)
-db = client.garmin
+
 
 colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
 MAXHR = 190
@@ -33,6 +30,15 @@ CTL_WINDOW=42
 ATL_WINDOW=7
 
 JF_BINS
+
+
+def mongo_decorator(func):
+    def wrapper(*args, **kwargs):
+        print('making mongo connection with decorator')
+        with MongoClient('localhost', 27017) as client:
+                return func(client.garmin, **kwargs)
+    return wrapper
+
 
 failed_track =[]
 def get_track(x):
@@ -214,15 +220,16 @@ def get_training_log_with_text(week_df):
         text_row[k]=xs[k][1]
     return row,text_row
 
-def get_training_summary(db):
+@mongo_decorator
+def get_training_summary(db=None):
     '''returns a list of ('TSS',str(datetime),duration,distance) dicts'''
     query = {'$project':{'df':{'$slice':['$df',-1]},'TSS':1,'time':1}}
     sort = {'$sort':{'time':1}}
     test = list(db.runsy.aggregate([query,sort]))
     return [{'TSS':t.get('TSS'),'time':datetime.strptime(str(t['time']),'%Y-%m-%d %H:%M:%S'),'Distance':float(t['df'][0]['Distance'])/1000,'duration':float(t['df'][0]['time'])/60} for t in test if t.get('TSS')]
 
-
-def get_TSSes(db):
+@mongo_decorator
+def get_TSSes():
     '''returns a list of list('TSS',str(datetime)) lists'''
     sort = {'$sort':{'time':1}}
     rs = list(db.runsy.aggregate([{'$match':{}},sort]))
@@ -230,7 +237,7 @@ def get_TSSes(db):
     return [[r.get('TSS'),datetime.strptime(str(r.get('time')),'%Y-%m-%d %H:%M:%S')] for r in rs if r.get('TSS')]
 
 def plot_training_loads(TSSes,date = None):
-    TL_df = pd.DataFrame(get_training_summary(db))
+    TL_df = pd.DataFrame(get_training_summary())
     TL_df = TL_df.sort_values(by = 'time')
     TSSes = np.array(TL_df[['TSS','time']])
 
@@ -288,7 +295,7 @@ def update_TSSes(df):
         insert_runs_mongo([record])
         post_runs_gcloud(record)
 
-
+@mongo_decorator
 def insert_runs_mongo(records):
     result = db.runsy.insert_many(records)
     print('Inserted records:')
@@ -309,8 +316,8 @@ def post_runs_gcloud(record):
     print(response)
     return response
 
-
-def get_training_summary(db):
+@mongo_decorator
+def get_training_summary(db=None):
     '''returns a list of ('TSS',str(datetime),duration,distance) dicts'''
     query = {'$project':{'df':{'$slice':['$df',-1]},'TSS':1,'time':1}}
     test = list(db.runsy.aggregate([query]))

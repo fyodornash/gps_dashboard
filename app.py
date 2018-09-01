@@ -14,10 +14,7 @@ import plotly.graph_objs as go
 import config
 from auth import auth
 from utils import StaticUrlPath
-print('making connection in app.py')
-from pymongo import MongoClient
-client = MongoClient('localhost', 27017)
-db = client.garmin
+
 
 start_time = time()
 print('creating app')
@@ -38,12 +35,17 @@ def df_run(run):
     return df
 
 print('load the runs')
-runs = [run for run in db.runsy.find()]
+
+@mongo_decorator
+def get_runs(db = None):
+    return [run for run in db.runsy.find()]
+
+runs = get_runs()
 runs_date = {str(run['time']).split()[0]: df_run(run) for run in runs}
 speed_zones_date = {str(run['time']).split()[0]: run['speed_zones'] for run in runs}
 hr_zones_date = {str(run['time']).split()[0]: run.get('hr_zones') for run in runs}
 runs_dict = {str(run['time']).split()[0]: run for run in runs}
-TSSes = [[tss, date] for [tss, date, c, d] in get_training_summary(db)]
+TSSes = [[tss, date] for [tss, date, c, d] in get_training_summary()]
 colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
 dates = sorted(runs_date.keys())
 
@@ -93,7 +95,10 @@ def update_dropdown(_):
     dash.dependencies.Output('graph-with-dropdown', 'figure'),
     [dash.dependencies.Input('graph4', 'clickData')])
 def update_figure(clickData):
-    selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    if clickData:
+        selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    else:
+        selected_date = '2018-07-10'
     global start_time
     delta_time = time()-start_time
     if delta_time>8000:
@@ -105,7 +110,7 @@ def update_figure(clickData):
         speed_zones_date = {str(run['time']).split()[0]:run['speed_zones'] for run in runs}
         hr_zones_date = {str(run['time']).split()[0]:run.get('hr_zones') for run in runs}
         runs_dict= {str(run['time']).split()[0]:run for run in runs}
-        TSSes = [[tss,date] for [tss,date,c,d] in get_training_summary(db)]
+        TSSes = [[tss,date] for [tss,date,c,d] in get_training_summary()]
     filtered_df = runs_date[selected_date]
     traces = []
     for i,color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])),colors):
@@ -129,7 +134,10 @@ def update_figure(clickData):
     dash.dependencies.Output(component_id='stress-md', component_property='children'),
     [dash.dependencies.Input('graph4', 'clickData')])
 def update_output_md(clickData):
-    selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    if clickData:
+        selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    else:
+        selected_date = '2018-07-10'
     if runs_dict[selected_date].get('TSS'):
         return dedent('''
 # Stress Score : **{0:.2f}** ___________  Cardiac Drift : {1:.2f}
@@ -141,7 +149,10 @@ def update_output_md(clickData):
     dash.dependencies.Output('graph2-with-dropdown', 'figure'),
     [dash.dependencies.Input('graph4', 'clickData')])
 def update_figure2(clickData):
-    selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    if clickData:
+        selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    else:
+        selected_date = '2018-07-10'
     filtered_speed = speed_zones_date[selected_date]
     filtered_hr = hr_zones_date[selected_date]
 
@@ -169,8 +180,12 @@ def update_figure2(clickData):
 
 @app.callback(
     dash.dependencies.Output('graph3', 'figure'),
-    [dash.dependencies.Input('year-dropdown', 'value')])
-def update_figure3(selected_date):
+    [dash.dependencies.Input('graph4', 'clickData')])
+def update_figure3(clickData):
+    if clickData:
+        selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+    else:
+        selected_date = '2018-07-10'
     return plot_training_loads(TSSes,selected_date)
 
 
@@ -184,8 +199,8 @@ def display_click_data(clickData):
 @app.callback(
     dash.dependencies.Output('graph4', 'figure'),
     [dash.dependencies.Input('year-dropdown', 'value')])
-def update_figure3(selected_date):
-    df = pd.DataFrame(get_training_summary(db))
+def update_figure4(selected_date):
+    df = pd.DataFrame(get_training_summary())
     return heat_map_running(df)
 
 app.css.append_css({'external_url':'https://codepen.io/chriddyp/pen/dZVMbK.css'})
