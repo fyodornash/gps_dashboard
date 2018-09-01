@@ -24,8 +24,7 @@ from pymongo import MongoClient,InsertOne,UpdateOne
 client = MongoClient('localhost',27017)
 db = client.garmin
 
-# In[2]:
-
+colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
 MAXHR = 190
 LTHR = 175
 LT_SPEED= 14.0
@@ -258,18 +257,21 @@ def plot_training_loads(TSSes,date = None):
 
 
     data = traces
-    layout = go.Layout(title='Training Loads',annotations=[
-        dict(
-            x=date,
-            y=-0,
-            xref='x',
-            yref='y',
-            text='Selected Run',
-            showarrow=True,
-            arrowhead=0,
-            ax=0,
-            ay=-150
-        )],
+    layout = go.Layout(
+        title='Training Loads',
+        colorway= colors,
+        annotations=[
+            dict(
+                x=date,
+                y=-0,
+                xref='x',
+                yref='y',
+                text='Selected Run',
+                showarrow=True,
+                arrowhead=0,
+                ax=0,
+                ay=-150
+            )],
         xaxis = dict(
             range = [TL_df['time'][18],TL_df['time'].max()],
             type = 'date')

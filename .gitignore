@@ -1,1 +1,4 @@
-__pycache__/*.pyc
+venv
+*.pyc
+.DS_Store
+vv
