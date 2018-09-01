@@ -39,7 +39,7 @@ print('load the runs')
 @mongo_decorator
 def get_runs(db = None):
     return [run for run in db.runsy.find()]
-
+print('loaded runs')
 runs = get_runs()
 runs_date = {str(run['time']).split()[0]: df_run(run) for run in runs}
 speed_zones_date = {str(run['time']).split()[0]: run['speed_zones'] for run in runs}

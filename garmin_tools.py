@@ -36,6 +36,7 @@ def mongo_decorator(func):
     def wrapper(*args, **kwargs):
         print('making mongo connection with decorator')
         with MongoClient('localhost', 27017) as client:
+                print('sending connection to function')
                 return func(client.garmin, **kwargs)
     return wrapper
 
