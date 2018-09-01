@@ -6,9 +6,6 @@
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
-import matplotlib.pyplot as plt
-from collections import ChainMap
-from sklearn import linear_model
 from datetime import timedelta,datetime
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
@@ -18,7 +15,6 @@ import json
 import plotly.offline as py
 import plotly.graph_objs as go
 pd.core.common.is_list_like = pd.api.types.is_list_like
-import pandas_datareader.data as web
 
 from pymongo import MongoClient,InsertOne,UpdateOne
 client = MongoClient('localhost',27017)
