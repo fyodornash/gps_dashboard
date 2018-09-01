@@ -1,3 +1,4 @@
+print('starting app.py')
 import pandas as pd
 
 from textwrap import dedent
@@ -13,13 +14,13 @@ import plotly.graph_objs as go
 import config
 from auth import auth
 from utils import StaticUrlPath
-
+print('making connection in app.py')
 from pymongo import MongoClient
 client = MongoClient('localhost', 27017)
 db = client.garmin
 
 start_time = time()
-
+print('creating app')
 app = dash.Dash(
     __name__,
 )
@@ -36,7 +37,7 @@ def df_run(run):
         df.Time = pd.to_datetime(df.Time)
     return df
 
-
+print('load the runs')
 runs = [run for run in db.runsy.find()]
 runs_date = {str(run['time']).split()[0]: df_run(run) for run in runs}
 speed_zones_date = {str(run['time']).split()[0]: run['speed_zones'] for run in runs}
@@ -53,7 +54,7 @@ styles = {
     }
 }
 
-
+print('creating the app layout')
 app.layout = html.Div([
     html.Div(dcc.Markdown(id = 'stress-md', className="twelve columns"), style={"text-align": "center"}),
     html.Div(dcc.Graph(id='graph-with-dropdown'),className="six columns"),

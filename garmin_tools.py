@@ -2,7 +2,6 @@
 # coding: utf-8
 
 # In[1]:
-
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
@@ -15,7 +14,7 @@ import json
 import plotly.offline as py
 import plotly.graph_objs as go
 pd.core.common.is_list_like = pd.api.types.is_list_like
-
+print('making mongo connection in garmin_tools')
 from pymongo import MongoClient,InsertOne,UpdateOne
 client = MongoClient('localhost',27017)
 db = client.garmin
@@ -44,7 +43,6 @@ def get_track(x):
         failed_track.append(x)
 
 
-# In[20]:
 def create_df(clean_dps):
     df = pd.DataFrame()
 
