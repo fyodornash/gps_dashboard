@@ -37,7 +37,7 @@ def mongo_decorator(func):
         print('making mongo connection with decorator')
         with MongoClient('localhost', 27017) as client:
                 print('sending connection to function')
-                return func(client.garmin, **kwargs)
+                return func(db = client.garmin, **kwargs)
     return wrapper
 
 
@@ -237,6 +237,25 @@ def get_TSSes():
 #    rs = list(db.runs.find({},{'TSS':1,'time':1}))
     return [[r.get('TSS'),datetime.strptime(str(r.get('time')),'%Y-%m-%d %H:%M:%S')] for r in rs if r.get('TSS')]
 
+
+@mongo_decorator
+def search_run(db=None, time=None):
+    print(time)
+    run = db.runsy.find_one({'time':datetime.strptime(time,'%Y-%m-%d %H:%M:%S')})
+
+    d = str(run['time']).split()[0]
+    return df_run(run), run['speed_zones'], run.get('hr_zones'), run
+
+
+def df_run(run):
+    try:
+        return pd.DataFrame(run['df'])
+    except ValueError:
+        df = pd.DataFrame(json.loads(run['df'].replace("'", '"')))
+        df.Time = pd.to_datetime(df.Time)
+    return df
+
+
 def plot_training_loads(TSSes,date = None):
     TL_df = pd.DataFrame(get_training_summary())
     TL_df = TL_df.sort_values(by = 'time')
@@ -338,13 +357,18 @@ def get_training_log_with_text_and_date(week_df):
     return (row,text_row,dates_row)
 
 
-def heat_map_running(df):
+def add_weeks(df):
     df['text'] = df.Distance.round(2).astype('str') + ' kms<br>' + df.duration.round(2).astype('str') + ' mins' + '<br>' + df.time.astype('str')
     df['week'] = df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year,x.week,1),'%Y-%W-%w')).astype('str')
     df['week2'] ='Week of ' + df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year,x.week,1),'%Y-%W-%w')).apply(lambda y: y.strftime('%B %-d'))
+    return df
+
+
+def heat_map_running(df, start, end):
+    df = add_weeks(df)
 
     df['day'] =df.time.apply(lambda x: x.dayofweek)
-    df = df[df.week.isin(df.week.unique()[-4:])]
+    df = df[df.week.isin(df.week.unique()[start: end + 1])]
     colorscale = [
         [0,'rgba(198,198,198,1)'],
         [1,'rgb(178, 34, 34)']
