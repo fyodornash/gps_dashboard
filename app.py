@@ -20,7 +20,6 @@ def eprint(*args, **kwargs):
         print(*args, file=sys.stderr, **kwargs)
 
 app = Flask('update_db')
-server = app.server
 
 @app.route('/upload/',methods = ['POST'])
 def result():
@@ -36,3 +35,8 @@ def result():
         #record = {a:b for a,b in zip(request.form.keys(),request.form.values())}
         db.runsy.insert_many([record])
         return 'Received'
+
+if __name__ == '__main__':
+    # Bind to PORT if defined, otherwise default to 5000.
+    port = int(os.environ.get('PORT', 5000))
+    app.run(host='127.0.0.1', port=port)
