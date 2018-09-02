@@ -1,7 +1,5 @@
 
-# coding: utf-8
-
-# In[1]:
+import os
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
@@ -35,7 +33,7 @@ JF_BINS
 def mongo_decorator(func):
     def wrapper(*args, **kwargs):
         print('making mongo connection with decorator')
-        with MongoClient('localhost', 27017) as client:
+        with MongoClient(os.environ['MONGO_URL']) as client:
                 print('sending connection to function')
                 return func(db = client.garmin, **kwargs)
     return wrapper
