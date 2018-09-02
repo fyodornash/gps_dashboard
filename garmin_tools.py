@@ -3,7 +3,7 @@ import os
 import xml.etree.ElementTree as ET
 import numpy as np
 import pandas as pd
-from datetime import timedelta,datetime
+from datetime import timedelta, datetime
 from urllib.parse import urlencode
 from urllib.request import Request, urlopen
 import json
@@ -238,8 +238,13 @@ def get_TSSes():
 
 @mongo_decorator
 def search_run(db=None, time=None):
-    print(time)
-    run = db.runsy.find_one({'time':datetime.strptime(time,'%Y-%m-%d %H:%M:%S')})
+    t = datetime.strptime(time,'%Y-%m-%d %H:%M:%S')
+    print(time, t)
+    if os.environ.get('MONGO_URL'):
+        time = time
+    else:
+        time = t
+    run = db.runsy.find_one({'time': time})
 
     d = str(run['time']).split()[0]
     return df_run(run), run['speed_zones'], run.get('hr_zones'), run
