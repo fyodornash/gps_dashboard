@@ -326,7 +326,7 @@ def insert_runs_mongo(records):
 
 def post_runs_gcloud(record):
     record['time'] = str(record['time'])
-    url = 'http://35.203.51.139/upload' # Set destination URL here
+    url = 'http://35.203.51.139/upload/' # Set destination URL here
     req = Request(url)
     req.add_header('Content-Type', 'application/json; charset=utf-8')
     jsondata = json.dumps(record)

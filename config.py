@@ -6,7 +6,7 @@ import os
 #
 # This name MUST match the name that you specified in the
 # Dash App Manager
-DASH_APP_NAME = 'gps-dashboard'
+DASH_APP_NAME = 'upload'
 # for nginx path proxy
 os.environ['APP'] = DASH_APP_NAME
 
