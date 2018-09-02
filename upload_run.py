@@ -1,4 +1,5 @@
 from __future__ import print_function
+import os
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -21,9 +22,9 @@ def eprint(*args, **kwargs):
 
 app = Flask('update_db')
 
-@app.route('/upload',methods = ['POST'])
+@app.route('/upload/',methods = ['POST'])
 def result():
-    with MongoClient('localhost',27017) as client:
+    with MongoClient(os.environ.get['MONGO_URL']) as client:
         db = client.garmin
         record = request.get_json()
         record['time'] = datetime.datetime.fromtimestamp(float(record['time'])).strftime('%Y-%m-%d %H:%M:%S')
