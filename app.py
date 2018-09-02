@@ -20,6 +20,7 @@ def eprint(*args, **kwargs):
         print(*args, file=sys.stderr, **kwargs)
 
 app = Flask('update_db')
+server = app.server
 
 @app.route('/upload/',methods = ['POST'])
 def result():
