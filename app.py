@@ -10,18 +10,20 @@ from time import time
 import json
 import datetime
 
-from pymongo import MongoClient,InsertOne,UpdateOne
+from pymongo import MongoClient
 
-from flask import Flask,request
+from flask import Flask, request
 
 import sys
 
 def eprint(*args, **kwargs):
         print(*args, file=sys.stderr, **kwargs)
 
+
 app = Flask('update_db')
 
-@app.route('/upload/',methods = ['POST'])
+
+@app.route('/',methods = ['POST'])
 def result():
     with MongoClient(os.environ.get('MONGO_URL')) as client:
         db = client.garmin
