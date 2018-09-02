@@ -368,6 +368,7 @@ def add_weeks(df):
 
 
 def heat_map_running(df, start, end):
+    print('start = {} and end = {}'.format(start, end))
     df = add_weeks(df)
 
     df['day'] =df.time.apply(lambda x: x.dayofweek)
