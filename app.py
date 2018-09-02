@@ -112,7 +112,7 @@ def update_figure(clickData):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10'
+        selected_date = '2018-07-10 11:36:43'
     filtered_df, _, _, _ = search_run(time=selected_date)
     traces = []
     for i,color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])),colors):
@@ -137,9 +137,9 @@ def update_figure(clickData):
     [dash.dependencies.Input('graph4', 'clickData')])
 def update_output_md(clickData):
     if clickData:
-        selected_date = clickData['points'][0]['text'].split('<br>')[2].split(' ')[0]
+        selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10'
+        selected_date = '2018-07-10 11:36:43'
     filtered_df, _, _, run = search_run(time=selected_date)
     if run.get('TSS'):
         return dedent('''
@@ -155,7 +155,7 @@ def update_figure2(clickData):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10'
+        selected_date = '2018-07-10 11:36:43'
     filtered_df, filtered_speed, filtered_hr, _ = search_run(time=selected_date)
 
     traces = []
@@ -187,7 +187,7 @@ def update_figure3(clickData):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10'
+        selected_date = '2018-07-10 11:36:43'
     filtered_df, _, _, _ = search_run(time=selected_date)
     return plot_training_loads(TSSes,selected_date)
 
