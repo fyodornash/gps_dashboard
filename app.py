@@ -95,6 +95,9 @@ app.layout = html.Div([
     dash.dependencies.Output('week-end-dropdown', 'options'),
     [dash.dependencies.Input('week-end-dropdown', 'value')])
 def update_dropdown(week):
+    df = pd.DataFrame(get_training_summary())
+    df = add_weeks(df)
+    weeks = list(df.week.unique())
     return [{'label':week,'value':n} for n,week in enumerate(weeks)]
 
 
@@ -102,6 +105,9 @@ def update_dropdown(week):
     dash.dependencies.Output('week-start-dropdown', 'options'),
     [dash.dependencies.Input('week-start-dropdown', 'value')])
 def update_dropdown(week):
+    df = pd.DataFrame(get_training_summary())
+    df = add_weeks(df)
+    weeks = list(df.week.unique())
     return [{'label':week,'value':n} for n,week in enumerate(weeks)]
 
 
