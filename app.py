@@ -5,6 +5,7 @@ from garmin_tools import *
 from time import time
 import json
 
+from dash._utils import get_asset_path
 import dash
 import dash_core_components as dcc
 import dash_html_components as html
@@ -25,6 +26,10 @@ auth(app)
 
 server = app.server  # Expose the server variable for deployments
 
+req = '/requests/routes/'
+routes = '/routes/'
+path = get_asset_path(req, routes, 'reset.css')
+print(path)
 
 print('load the runs')
 
