@@ -23,7 +23,10 @@ app = dash.Dash(
     __name__,
 )
 auth(app)
-
+print('routes: {}, requests: {}, base_url: {}'.format(
+    app.config.get('routes_pathname_prefix'),
+    app.config.get('requests_pathname_prefix'),
+    app.config.get('url_base_pathname')))
 server = app.server  # Expose the server variable for deployments
 
 req = '/requests/routes/'
