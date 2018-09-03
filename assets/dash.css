@@ -1,0 +1,13 @@
+._dash-undo-redo {
+    /* Change to 'display: none' if you want to remove
+     * the undo/redo buttons */
+    display: none;
+}
+
+/* Plotly.js
+–––––––––––––––––––––––––––––––––––––––––––––––––– */
+/* plotly.js's modebar's z-index is outta the roof by default - lower it down */
+.js-plotly-plot .plotly .modebar {
+    display: none;
+    z-index: 1;
+}
