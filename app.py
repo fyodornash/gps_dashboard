@@ -7,6 +7,7 @@ import pandas as pd
 import plotly.graph_objs as go
 from textwrap import dedent
 from garmin_tools import plot_training_loads
+from parse import upload_xml
 from time import time
 import json
 import datetime
@@ -28,16 +29,21 @@ app = Flask('update_db')
 def result():
     with MongoClient(os.environ.get('MONGO_URL')) as client:
         db = client.garmin
-        record = request.get_json()
-        record['time'] = datetime.datetime.fromtimestamp(float(record['time'])).strftime('%Y-%m-%d %H:%M:%S')
-#        for k in record.keys():
-#            try:
-#                record[k] = json.loads(record[k].replace("'",'"'))
-#            except ValueError:
-#                pass
-        #record = {a:b for a,b in zip(request.form.keys(),request.form.values())}
-        db.runsy.insert_many([record])
-        return 'Received'
+        json_post = request.get_json()
+        xml_post = request.data
+        if json_post:
+            record['time'] = datetime.datetime.fromtimestamp(float(record['time'])).strftime('%Y-%m-%d %H:%M:%S')
+    #        for k in record.keys():
+    #            try:
+    #                record[k] = json.loads(record[k].replace("'",'"'))
+    #            except ValueError:
+    #                pass
+            #record = {a:b for a,b in zip(request.form.keys(),request.form.values())}
+            db.runsy.insert_many([record])
+            return 'Received'
+        else:
+            upload_xml(xml_post)
+            return 'Received xml'
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.
