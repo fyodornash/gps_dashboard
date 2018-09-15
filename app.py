@@ -36,7 +36,7 @@ def result():
     if file:
         print('filename', file.filename, [method_name for method_name in dir(file)])
         upload_xml(file.read(), user_id)
-        return 'Received xml'
+        return '\nReceived {}\n\n'.format(file.filename)
     else:
         print('shit')
 
