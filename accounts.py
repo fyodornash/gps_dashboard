@@ -8,7 +8,8 @@ def create_user(db=None, user_id=None, password=None):
               'password': password}
     try:
         update = db.accounts.insert(record)
-        return str(update)
+        print(update)
+        return '\nNew user {} added \n\n'.format(user_id)
     except DuplicateKeyError:
         return "\nThat user_id already exists!\n\n"
 
