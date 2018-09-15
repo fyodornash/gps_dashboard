@@ -16,7 +16,6 @@ from auth import auth
 
 print('starting app.py')
 
-
 start_time = time()
 print('creating app')
 app = dash.Dash(
@@ -36,14 +35,15 @@ print(path)
 
 print('load the runs')
 
+
 @mongo_decorator
-def get_runs(db = None):
+def get_runs(db=None):
     return [run for run in db.runsy.find()]
+
+
 print('loading runs')
 
-
-
-runs, runs_date, speed_zones_date, hr_zones_date, runs_dict, dates = [], {}, {}, {}, {},[]
+runs, runs_date, speed_zones_date, hr_zones_date, runs_dict, dates = [], {}, {}, {}, {}, []
 df = pd.DataFrame(get_training_summary())
 df = add_weeks(df)
 weeks = list(df.week.unique())
@@ -60,14 +60,14 @@ styles = {
 
 print('creating the app layout')
 app.layout = html.Div([
-    html.Div(dcc.Markdown(id = 'stress-md', className="twelve columns"), style={"text-align": "center"}),
-    html.Div(dcc.Graph(id='graph-with-dropdown'),className="six columns"),
+    html.Div(dcc.Markdown(id='stress-md', className="twelve columns"), style={"text-align": "center"}),
+    html.Div(dcc.Graph(id='graph-with-dropdown'), className="six columns"),
     html.Div(dcc.Graph(
         id='graph2-with-dropdown'),
         className="six columns"),
     html.Div([
         html.Div(dcc.Graph(id='graph4'),
-            className='nine columns'),
+                 className='nine columns'),
         html.Div([
             dcc.Markdown(dedent("""
                 **Selected Run**
@@ -80,7 +80,7 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='week-start-dropdown',
                 value=len(weeks) - 4,
-                options= [{'label':week,'value':n} for n,week in enumerate(weeks)]
+                options=[{'label': week, 'value': n} for n, week in enumerate(weeks)]
             ),
             dcc.Markdown(dedent("""
 
@@ -89,12 +89,12 @@ app.layout = html.Div([
             dcc.Dropdown(
                 id='week-end-dropdown',
                 value=len(weeks) - 1,
-                options=[{'label':week,'value':n} for n,week in enumerate(weeks)]
+                options=[{'label': week, 'value': n} for n, week in enumerate(weeks)]
             )
-        ], className='three columns')], className= 'twelve columns')
+        ], className='three columns')], className='twelve columns')
     ,
     html.Div(dcc.Graph(id='graph3'),
-    className='twelve columns')
+             className='twelve columns')
 
 ])
 
@@ -106,7 +106,7 @@ def update_dropdown(week):
     df = pd.DataFrame(get_training_summary())
     df = add_weeks(df)
     weeks = list(df.week.unique())
-    return [{'label':week,'value':n} for n,week in enumerate(weeks)]
+    return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
 
 
 @app.callback(
@@ -115,8 +115,9 @@ def update_dropdown(week):
 def update_dropdown(week):
     df = pd.DataFrame(get_training_summary())
     df = add_weeks(df)
+    global weeks
     weeks = list(df.week.unique())
-    return [{'label':week,'value':n} for n,week in enumerate(weeks)]
+    return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
 
 
 @app.callback(
@@ -129,19 +130,18 @@ def update_figure(clickData):
         selected_date = '2018-07-10 11:36:43'
     filtered_df, _, _, _ = search_run(time=selected_date)
     traces = []
-    for i,color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])),colors):
-
+    for i, color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])), colors):
         traces.append(go.Scatter(
             x=filtered_df['Distance'],
             y=filtered_df[i],
             name=i,
-            line = dict(color = color)
+            line=dict(color=color)
         ))
 
     return {
         'data': traces,
         'layout': go.Layout(
-            title = 'Run Details'
+            title='Run Details'
         )
     }
 
@@ -158,9 +158,10 @@ def update_output_md(clickData):
     if run.get('TSS'):
         return dedent('''
 # Stress Score : **{0:.2f}** ___________  Cardiac Drift : {1:.2f}
-'''.format(run.get('TSS'),run.get('cardiac_drift')))
+'''.format(run.get('TSS'), run.get('cardiac_drift')))
     else:
         return '# There is no heartrate data for this run'
+
 
 @app.callback(
     dash.dependencies.Output('graph2-with-dropdown', 'figure'),
@@ -179,20 +180,21 @@ def update_figure2(clickData):
         x=zones,
         y=[filtered_speed[zone] for zone in zones],
         name='Pace Zones',
-        text = zones_text_pace(),
-        marker = dict(color = colors[0])
-        ))
+        text=zones_text_pace(),
+        marker=dict(color=colors[0])
+    ))
     if filtered_hr:
-        traces.append(go.Bar(y =[filtered_hr[zone] for zone in zones],
-            x = zones, name ='HR', text = zones_text_hr(),
-            marker = dict(color = colors[1])))
+        traces.append(go.Bar(y=[filtered_hr[zone] for zone in zones],
+                             x=zones, name='HR', text=zones_text_hr(),
+                             marker=dict(color=colors[1])))
 
     return {
         'data': traces,
         'layout': go.Layout(
-            title = 'Pace and HR Zones',hovermode="closest",yaxis = {'title':'Minutes in Zone','hoverformat':'.2f'}
+            title='Pace and HR Zones', hovermode="closest", yaxis={'title': 'Minutes in Zone', 'hoverformat': '.2f'}
         )
     }
+
 
 @app.callback(
     dash.dependencies.Output('graph3', 'figure'),
@@ -203,7 +205,7 @@ def update_figure3(clickData):
     else:
         selected_date = '2018-07-10 11:36:43'
     filtered_df, _, _, _ = search_run(time=selected_date)
-    return plot_training_loads(TSSes,selected_date)
+    return plot_training_loads(TSSes, selected_date)
 
 
 @app.callback(
@@ -215,12 +217,13 @@ def display_click_data(clickData):
 
 @app.callback(
     dash.dependencies.Output('graph4', 'figure'),
-    [dash.dependencies.Input('week-start-dropdown', 'value'),dash.dependencies.Input('week-end-dropdown', 'value')])
+    [dash.dependencies.Input('week-start-dropdown', 'value'), dash.dependencies.Input('week-end-dropdown', 'value')])
 def update_figure4(start, end):
     df = pd.DataFrame(get_training_summary())
     return heat_map_running(df, start, end)
 
-app.css.append_css({'external_url':'https://codepen.io/chriddyp/pen/dZVMbK.css'})
+
+app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/dZVMbK.css'})
 
 if __name__ == '__main__':
     app.run_server(debug=True)
