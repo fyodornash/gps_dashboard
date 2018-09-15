@@ -4,10 +4,11 @@ import pandas as pd
 from datetime import timedelta, datetime
 from urllib.request import Request, urlopen
 import json
-from pymongo import MongoClient
 
 import plotly.offline as py
 import plotly.graph_objs as go
+
+from db_utils import mongo_decorator
 
 pd.core.common.is_list_like = pd.api.types.is_list_like
 
@@ -25,17 +26,6 @@ CTL_WINDOW = 42
 ATL_WINDOW = 7
 
 JF_BINS
-
-
-def mongo_decorator(func):
-    def wrapper(*args, **kwargs):
-        print('making mongo connection with decorator')
-        with MongoClient(os.environ.get('MONGO_URL', 'mongodb://localhost:27017')) as client:
-            print('sending connection to function')
-            return func(db=client.garmin, **kwargs)
-
-    return wrapper
-
 
 failed_track = []
 

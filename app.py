@@ -1,49 +1,45 @@
 from __future__ import print_function
 import os
-import dash
-import dash_core_components as dcc
-import dash_html_components as html
-import pandas as pd
-import plotly.graph_objs as go
-from textwrap import dedent
-from garmin_tools import plot_training_loads
 from parse import upload_xml
-from time import time
-import json
-import datetime
-
-from pymongo import MongoClient
-
 from flask import Flask, request
-
+from accounts import create_user, validate_user_id
 import sys
 
+
 def eprint(*args, **kwargs):
-        print(*args, file=sys.stderr, **kwargs)
+    print(*args, file=sys.stderr, **kwargs)
 
 
 app = Flask('update_db')
 
 
-@app.route('/',methods = ['POST'])
+@app.route('/', methods=['POST'])
 def result():
-    with MongoClient(os.environ.get('MONGO_URL')) as client:
-        db = client.garmin
-        json_post = request.get_json()
-        xml_post = request.data
-        if json_post:
-            record['time'] = datetime.datetime.fromtimestamp(float(record['time'])).strftime('%Y-%m-%d %H:%M:%S')
-    #        for k in record.keys():
-    #            try:
-    #                record[k] = json.loads(record[k].replace("'",'"'))
-    #            except ValueError:
-    #                pass
-            #record = {a:b for a,b in zip(request.form.keys(),request.form.values())}
-            db.runsy.insert_many([record])
-            return 'Received'
-        else:
-            upload_xml(xml_post)
-            return 'Received xml'
+    new_user = request.form.get('create_user')
+    print(new_user)
+    password = request.form.get('password')
+    user_id = request.form.get('user_id')
+    if any(x is None for x in [password,user_id]):
+        return '\nYou need to enter a user_id and password, ' \
+               'or create a new user with:\n\n' \
+               'curl -X POST -F user_id=your_username -F password=your_password -F create_user=true http://35.203.51.139/upload/ \n\n'
+
+    print(request.form)
+    if new_user:
+        return create_user(user_id=user_id, password=password)
+
+    if not validate_user_id(user_id=user_id, password=password):
+        return '\n Incorrect user_id and password combo\n\n'
+
+    file = request.files.get('file')
+
+    if file:
+        print('filename', file.filename, [method_name for method_name in dir(file)])
+        upload_xml(file.read(), user_id)
+        return 'Received xml'
+    else:
+        print('shit')
+
 
 if __name__ == '__main__':
     # Bind to PORT if defined, otherwise default to 5000.

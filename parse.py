@@ -68,7 +68,7 @@ def get_track(x):
         failed_track.append(x)
 
 
-def upload_xml(xml):
+def upload_xml(xml, user_id):
     root = ET.fromstring(xml)
     activity = root.getchildren()[0].getchildren()[0]
     running_activity = activity if activity.attrib['Sport'] == 'Running' else None
@@ -92,4 +92,6 @@ def upload_xml(xml):
 
     dfs_hr = [df for df in dfs if 'Heartrate' in df.columns]
     record = create_record(dfs_hr[0])
+    record['time'] = record['time'].strftime('%Y-%m-%d %H:%M:%S')
+    record['user_id'] = user_id
     insert_runs_mongo(records=[record])
