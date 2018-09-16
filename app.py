@@ -10,6 +10,8 @@ def eprint(*args, **kwargs):
     print(*args, file=sys.stderr, **kwargs)
 
 
+
+
 app = Flask('update_db')
 
 
@@ -29,7 +31,11 @@ def result():
         return create_user(user_id=user_id, password=password)
 
     if not validate_user_id(user_id=user_id, password=password):
-        return '\n Incorrect user_id and password combo\n\n'
+        return '\n Incorrect user_id and password combo\n' \
+               'Create a new user with:\n\n' \
+               'curl -X POST -F user_id=your_username -F password=your_password -F create_user=true http://35.203.51.139/upload/ \n\n'
+
+
 
     file = request.files.get('file')
 
