@@ -31,7 +31,7 @@ def result():
         return create_user(user_id=user_id, password=password)
 
     if not validate_user_id(user_id=user_id, password=password):
-        return '\n Incorrect user_id and password combo\n' \
+        return '\nIncorrect user_id and password combo. ' \
                'Create a new user with:\n\n' \
                'curl -X POST -F user_id=your_username -F password=your_password -F create_user=true http://35.203.51.139/upload/ \n\n'
 
