@@ -5,13 +5,13 @@ from garmin_tools import *
 from time import time
 import json
 
-from dash._utils import get_asset_path
 import dash
+from dash.dependencies import Input, Output, State
 import dash_core_components as dcc
 import dash_html_components as html
 import plotly.graph_objs as go
 
-import config
+from accounts import get_users
 from auth import auth
 
 print('starting app.py')
@@ -37,13 +37,16 @@ styles = {
     }
 }
 
+
 print('creating the app layout')
 app.layout = html.Div([
-    html.Div(dcc.Markdown(id='stress-md', className="twelve columns"), style={"text-align": "center"}),
-    html.Div(dcc.Graph(id='graph-with-dropdown'), className="six columns"),
-    html.Div(dcc.Graph(
+    html.Div([dcc.Dropdown(id='user-dropdown', value='michael', className='two columns'),
+              dcc.Markdown(id='stress-md', className="ten columns")], style={"text-align": "center"}),
+    html.Div([
+        html.Div(dcc.Graph(id='graph-with-dropdown'), className="six columns"),
+        html.Div(dcc.Graph(
         id='graph2-with-dropdown'),
-        className="six columns"),
+        className="six columns")]),
     html.Div([
         html.Div(dcc.Graph(id='graph4'),
                  className='nine columns'),
@@ -73,55 +76,70 @@ app.layout = html.Div([
 
 ])
 
+# states to use
+_user = State('user-dropdown', 'value')
+
 @app.callback(
-    dash.dependencies.Output('week-end-dropdown', 'value'),
-    [dash.dependencies.Input('week-end-dropdown', 'id')])
-def set_wed_value(_):
-    df = pd.DataFrame(get_training_summary())
+    Output('user-dropdown', 'options'),
+    [Input('user-dropdown', 'id')])
+def set_users(_):
+    return [{'label': user['user_id'], 'value': user['user_id']} for user in get_users()]
+
+
+@app.callback(
+    Output('week-end-dropdown', 'value'),
+    [Input('week-end-dropdown', 'id')],
+    [_user])
+def set_wed_value(_, user):
+    df = pd.DataFrame(get_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = list(df.week.unique())
     return len(weeks) - 1
 
 
 @app.callback(
-    dash.dependencies.Output('week-start-dropdown', 'value'),
-    [dash.dependencies.Input('week-start-dropdown', 'id')])
-def set_wed_value(_):
-    df = pd.DataFrame(get_training_summary())
+    Output('week-start-dropdown', 'value'),
+    [Input('week-start-dropdown', 'id')],
+    [_user])
+def set_wed_value(_, user):
+    df = pd.DataFrame(get_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = list(df.week.unique())
     return len(weeks) - 4
 
 
 @app.callback(
-    dash.dependencies.Output('week-end-dropdown', 'options'),
-    [dash.dependencies.Input('week-end-dropdown', 'value')])
-def update_dropdown(week):
-    df = pd.DataFrame(get_training_summary())
+    Output('week-end-dropdown', 'options'),
+    [Input('week-end-dropdown', 'value')],
+    [_user])
+def update_dropdown(week, user):
+    df = pd.DataFrame(get_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = sorted(list(df.week.unique()))
     return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
 
 
 @app.callback(
-    dash.dependencies.Output('week-start-dropdown', 'options'),
-    [dash.dependencies.Input('week-start-dropdown', 'value')])
-def update_dropdown(week):
-    df = pd.DataFrame(get_training_summary())
+    Output('week-start-dropdown', 'options'),
+    [Input('week-start-dropdown', 'value')],
+    [_user])
+def update_dropdown(week, user):
+    df = pd.DataFrame(get_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = sorted(list(df.week.unique()))
     return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
 
 
 @app.callback(
-    dash.dependencies.Output('graph-with-dropdown', 'figure'),
-    [dash.dependencies.Input('graph4', 'clickData')])
-def update_figure(clickData):
+    Output('graph-with-dropdown', 'figure'),
+    [Input('graph4', 'clickData')],
+    [_user])
+def update_figure(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10 11:36:43'
-    filtered_df, _, _, _ = search_run(time=selected_date)
+        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+    filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
     traces = []
     for i, color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])), colors):
         traces.append(go.Scatter(
@@ -140,14 +158,15 @@ def update_figure(clickData):
 
 
 @app.callback(
-    dash.dependencies.Output(component_id='stress-md', component_property='children'),
-    [dash.dependencies.Input('graph4', 'clickData')])
-def update_output_md(clickData):
+    Output(component_id='stress-md', component_property='children'),
+    [Input('graph4', 'clickData')],
+    [_user])
+def update_output_md(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10 11:36:43'
-    filtered_df, _, _, run = search_run(time=selected_date)
+        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+    filtered_df, _, _, run = search_run(user_id=user, time=selected_date)
     if run.get('TSS'):
         return dedent('''
 # Stress Score : **{0:.2f}** ___________  Cardiac Drift : {1:.2f}
@@ -157,14 +176,15 @@ def update_output_md(clickData):
 
 
 @app.callback(
-    dash.dependencies.Output('graph2-with-dropdown', 'figure'),
-    [dash.dependencies.Input('graph4', 'clickData')])
-def update_figure2(clickData):
+    Output('graph2-with-dropdown', 'figure'),
+    [Input('graph4', 'clickData')],
+    [_user])
+def update_figure2(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10 11:36:43'
-    filtered_df, filtered_speed, filtered_hr, _ = search_run(time=selected_date)
+        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+    filtered_df, filtered_speed, filtered_hr, _ = search_run(user_id=user, time=selected_date)
 
     traces = []
     zones = sorted(filtered_speed.keys())
@@ -190,30 +210,31 @@ def update_figure2(clickData):
 
 
 @app.callback(
-    dash.dependencies.Output('graph3', 'figure'),
-    [dash.dependencies.Input('graph4', 'clickData')])
-def update_figure3(clickData):
+    Output('graph3', 'figure'),
+    [Input('graph4', 'clickData')],
+    [_user])
+def update_figure3(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = '2018-07-10 11:36:43'
-    filtered_df, _, _, _ = search_run(time=selected_date)
-    TSSes = [[tss, date] for [tss, date, c, d] in get_training_summary()]
-    return plot_training_loads(TSSes, selected_date)
+        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+    filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
+    return plot_training_loads(selected_date, user_id=user)
 
 
 @app.callback(
-    dash.dependencies.Output('click-data', 'children'),
-    [dash.dependencies.Input('graph4', 'clickData')])
+    Output('click-data', 'children'),
+    [Input('graph4', 'clickData')])
 def display_click_data(clickData):
     return json.dumps(clickData['points'][0]['text'].split('<br>')[2].split(' ')[0], indent=2)
 
 
 @app.callback(
-    dash.dependencies.Output('graph4', 'figure'),
-    [dash.dependencies.Input('week-start-dropdown', 'value'), dash.dependencies.Input('week-end-dropdown', 'value')])
-def update_figure4(start, end):
-    df = pd.DataFrame(get_training_summary())
+    Output('graph4', 'figure'),
+    [Input('week-start-dropdown', 'value'), Input('week-end-dropdown', 'value')],
+    [_user])
+def update_figure4(start, end, user):
+    df = pd.DataFrame(get_training_summary(user_id=user))
     return heat_map_running(df, start, end)
 
 
