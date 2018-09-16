@@ -28,27 +28,6 @@ print('routes: {}, requests: {}, base_url: {}'.format(
     app.config.get('url_base_pathname')))
 server = app.server  # Expose the server variable for deployments
 
-req = '/requests/routes/'
-routes = '/routes/'
-path = get_asset_path(req, routes, 'reset.css')
-print(path)
-
-print('load the runs')
-
-
-@mongo_decorator
-def get_runs(db=None):
-    return [run for run in db.runsy.find()]
-
-
-print('loading runs')
-
-runs, runs_date, speed_zones_date, hr_zones_date, runs_dict, dates = [], {}, {}, {}, {}, []
-df = pd.DataFrame(get_training_summary())
-df = add_weeks(df)
-weeks = list(df.week.unique())
-TSSes = [[tss, date] for [tss, date, c, d] in get_training_summary()]
-dates = [d for t, d in TSSes]
 colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
 
 print('finished')
@@ -79,8 +58,6 @@ app.layout = html.Div([
             """)),
             dcc.Dropdown(
                 id='week-start-dropdown',
-                value=len(weeks) - 4,
-                options=[{'label': week, 'value': n} for n, week in enumerate(weeks)]
             ),
             dcc.Markdown(dedent("""
 
@@ -88,8 +65,6 @@ app.layout = html.Div([
             """)),
             dcc.Dropdown(
                 id='week-end-dropdown',
-                value=len(weeks) - 1,
-                options=[{'label': week, 'value': n} for n, week in enumerate(weeks)]
             )
         ], className='three columns')], className='twelve columns')
     ,
@@ -98,6 +73,25 @@ app.layout = html.Div([
 
 ])
 
+@app.callback(
+    dash.dependencies.Output('week-end-dropdown', 'value'),
+    [dash.dependencies.Input('week-end-dropdown', 'id')])
+def set_wed_value(_):
+    df = pd.DataFrame(get_training_summary())
+    df = add_weeks(df)
+    weeks = list(df.week.unique())
+    return len(weeks) - 1
+
+
+@app.callback(
+    dash.dependencies.Output('week-start-dropdown', 'value'),
+    [dash.dependencies.Input('week-start-dropdown', 'id')])
+def set_wed_value(_):
+    df = pd.DataFrame(get_training_summary())
+    df = add_weeks(df)
+    weeks = list(df.week.unique())
+    return len(weeks) - 4
+
 
 @app.callback(
     dash.dependencies.Output('week-end-dropdown', 'options'),
@@ -105,7 +99,7 @@ app.layout = html.Div([
 def update_dropdown(week):
     df = pd.DataFrame(get_training_summary())
     df = add_weeks(df)
-    weeks = list(df.week.unique())
+    weeks = sorted(list(df.week.unique()))
     return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
 
 
@@ -115,8 +109,7 @@ def update_dropdown(week):
 def update_dropdown(week):
     df = pd.DataFrame(get_training_summary())
     df = add_weeks(df)
-    global weeks
-    weeks = list(df.week.unique())
+    weeks = sorted(list(df.week.unique()))
     return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
 
 
@@ -205,6 +198,7 @@ def update_figure3(clickData):
     else:
         selected_date = '2018-07-10 11:36:43'
     filtered_df, _, _, _ = search_run(time=selected_date)
+    TSSes = [[tss, date] for [tss, date, c, d] in get_training_summary()]
     return plot_training_loads(TSSes, selected_date)
 
 
