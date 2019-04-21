@@ -146,7 +146,21 @@ def get_speed_zones_minutes(df):
     return dict(y.value_counts().reindex(JF_ZONES) / 60)
 
 
-# In[27]:
+def get_intervals(df):
+    s60 = df.Speed.diff(-60)
+    df['s60'] =s60
+    in_interval = False
+    last_start = -1
+    intervals = []
+    for i, d, _, _, s, _, _, time, s60 in df.itertuples():
+        if s60 < -5 and df.iloc[i+60].Speed >14 and not in_interval:
+            in_interval = True
+            last_start = i + 60
+        if s60 > 5 and df.iloc[i+60].Speed <12 and in_interval:
+            in_interval = False
+            intervals.append((last_start, i +60))
+    return intervals
+
 
 def plot_hr_zones(df):
     y = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
@@ -158,8 +172,6 @@ def plot_hr_zones(df):
     return
 
 
-# In[28]:
-
 def plot_speed_zones(df):
     y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
     trace1 = go.Bar(y=(y.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, text=zones_text_pace())
@@ -169,8 +181,6 @@ def plot_speed_zones(df):
     py.plot(fig, filename='basic-bar')
     return
 
-
-# In[44]:
 
 def plot_speed_vs_hr(df):
     speed = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
@@ -225,15 +235,8 @@ def get_TSSes(user_id=None):
 
 @mongo_decorator
 def search_run(db=None, time=None, user_id=None):
-    t = datetime.strptime(time, '%Y-%m-%d %H:%M:%S')
-    print(time, t)
-    if os.environ.get('MONGO_URL'):
-        time = time
-    else:
-        time = t
     run = db.runsy.find_one({'time': time, 'user_id': user_id})
 
-    d = str(run['time']).split()[0]
     return df_run(run), run['speed_zones'], run.get('hr_zones'), run
 
 

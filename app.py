@@ -40,16 +40,22 @@ styles = {
 
 print('creating the app layout')
 app.layout = html.Div([
-    html.Div([dcc.Dropdown(id='user-dropdown', value='michael', className='two columns'),
-              dcc.Markdown(id='stress-md', className="ten columns")], style={"text-align": "center"}),
     html.Div([
-        html.Div(dcc.Graph(id='graph-with-dropdown'), className="six columns"),
-        html.Div(dcc.Graph(
-        id='graph2-with-dropdown'),
-        className="six columns")]),
+        dcc.Dropdown(id='user-dropdown', value='michael', className='two columns'),
+        dcc.Markdown(id='stress-md', className="ten columns")], style={"text-align": "center"}),
     html.Div([
-        html.Div(dcc.Graph(id='graph4'),
-                 className='nine columns'),
+        html.Div(
+            dcc.Graph(
+                id='graph-with-dropdown'
+            ), className="six columns"),
+        html.Div(
+            dcc.Graph(
+                id='graph2-with-dropdown'
+            ),className="six columns")]),
+    html.Div([
+        html.Div(
+            dcc.Graph(id='graph4'),
+            className='nine columns'),
         html.Div([
             dcc.Markdown(dedent("""
                 **Selected Run**
@@ -148,6 +154,28 @@ def update_figure(clickData, user):
             name=i,
             line=dict(color=color)
         ))
+    intervals = get_intervals(filtered_df)
+    if len(intervals) > 0:
+        for a, b in intervals:
+            ave_speed = (filtered_df.iloc[b].Distance - filtered_df.iloc[a].Distance) / (filtered_df.iloc[b].time - filtered_df.iloc[a].time) * 3.6
+            minutes = 60 / ave_speed
+            seconds = 60 * (minutes % 1)
+            traces.append(go.Scatter(
+                x=[filtered_df.Distance[a]],
+                y=[ave_speed],
+                text='{}:{:.0f}<br>min/km'.format(int(minutes), seconds),
+                mode='text',
+                textposition=['top left'],
+                showlegend=False,
+            ))
+            traces.append(go.Scatter(
+                x=[filtered_df.Distance[a], filtered_df.Distance[b]],
+                y=[ave_speed, ave_speed],
+                hoverinfo='skip',
+                mode='lines',
+                line=dict(color='black', dash='dot'),
+                showlegend=False
+            ))
 
     return {
         'data': traces,
