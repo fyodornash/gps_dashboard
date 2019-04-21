@@ -4,6 +4,7 @@ from textwrap import dedent
 from garmin_tools import *
 from time import time
 import json
+from flask_caching import Cache
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -27,6 +28,13 @@ print('routes: {}, requests: {}, base_url: {}'.format(
     app.config.get('requests_pathname_prefix'),
     app.config.get('url_base_pathname')))
 server = app.server  # Expose the server variable for deployments
+
+cache = Cache(app.server, config={
+    # try 'filesystem' if you don't want to setup redis
+    'CACHE_TYPE': 'redis',
+    'CACHE_REDIS_URL': os.environ.get('REDIS_URL', '')
+})
+timeout = 86400
 
 colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
 
@@ -140,6 +148,7 @@ def update_dropdown(week, user):
     Output('graph-with-dropdown', 'figure'),
     [Input('graph4', 'clickData')],
     [_user])
+@cache.memoize(timeout=timeout*30)
 def update_figure(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
@@ -177,12 +186,12 @@ def update_figure(clickData, user):
                 showlegend=False
             ))
 
-    return {
+    return go.Figure({
         'data': traces,
         'layout': go.Layout(
             title='Run Details'
         )
-    }
+    }).to_dict()
 
 
 @app.callback(
@@ -207,6 +216,7 @@ def update_output_md(clickData, user):
     Output('graph2-with-dropdown', 'figure'),
     [Input('graph4', 'clickData')],
     [_user])
+@cache.memoize(timeout=timeout*30)
 def update_figure2(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
@@ -229,25 +239,26 @@ def update_figure2(clickData, user):
                              x=zones, name='HR', text=zones_text_hr(),
                              marker=dict(color=colors[1])))
 
-    return {
+    return go.Figure({
         'data': traces,
         'layout': go.Layout(
             title='Pace and HR Zones', hovermode="closest", yaxis={'title': 'Minutes in Zone', 'hoverformat': '.2f'}
         )
-    }
+    }).to_dict()
 
 
 @app.callback(
     Output('graph3', 'figure'),
     [Input('graph4', 'clickData')],
     [_user])
+@cache.memoize(timeout=timeout*30)
 def update_figure3(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
         selected_date = str(get_training_summary(user_id=user)[-1]['time'])
     filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
-    return plot_training_loads(selected_date, user_id=user)
+    return plot_training_loads(selected_date, user_id=user).to_dict()
 
 
 @app.callback(
@@ -261,9 +272,10 @@ def display_click_data(clickData):
     Output('graph4', 'figure'),
     [Input('week-start-dropdown', 'value'), Input('week-end-dropdown', 'value')],
     [_user])
+@cache.memoize(timeout=timeout)
 def update_figure4(start, end, user):
     df = pd.DataFrame(get_training_summary(user_id=user))
-    return heat_map_running(df, start, end)
+    return heat_map_running(df, start, end).to_dict()
 
 
 app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/dZVMbK.css'})
