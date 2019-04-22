@@ -29,6 +29,8 @@ print('routes: {}, requests: {}, base_url: {}'.format(
     app.config.get('url_base_pathname')))
 server = app.server  # Expose the server variable for deployments
 
+app.title = 'Training Log'
+
 cache = Cache(app.server, config={
     # try 'filesystem' if you don't want to setup redis
     'CACHE_TYPE': 'redis',
