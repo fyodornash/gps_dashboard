@@ -251,23 +251,27 @@ def df_run(run):
 
 def plot_training_loads(date=None, user_id=None):
     TL_df = pd.DataFrame(get_training_summary(user_id=user_id))
-    TL_df = TL_df.sort_values(by='time')
-    TSSes = np.array(TL_df[['TSS', 'time']])
+    TL_df['date'] = TL_df.time.map(lambda x: x.date())
+    TL_df = TL_df.groupby('date').sum().reindex(pd.date_range(min(TL_df.date), datetime.now().date() + timedelta(8)),
+                                                fill_value=0)
+    TSSes = [(b, a) for a, b in TL_df.TSS.iteritems()]
 
-    if date == None:
-        date = str(TSSes[-1][1]).split()[0]
-    CTL = pd.DataFrame(training_loads(TSSes, 42), columns=['CTL', 'time'])
-    ATL = pd.DataFrame(training_loads(TSSes, 7), columns=['ATL', 'time'])
+    CTL = pd.DataFrame(training_loads(TSSes, 42), columns=['CTL', 'time']).groupby('time').sum().reindex(
+        pd.date_range(min(TL_df.index), max(TL_df.index)), fill_value=0)
+    ATL = pd.DataFrame(training_loads(TSSes, 7), columns=['ATL', 'time']).groupby('time').sum().reindex(
+        pd.date_range(min(TL_df.index), max(TL_df.index)), fill_value=0)
     TL_df['Fatigue'] = ATL.ATL
     TL_df['Fitness'] = CTL.CTL
     TL_df['Form'] = TL_df.Fitness - TL_df.Fatigue
     TL_df['text'] = TL_df.Distance.round(2).astype('str') + ' km<br>' + TL_df.duration.round(2).astype('str') + ' mins'
+    TL_df.text = TL_df.text.replace('0.0 km<br>0.0 mins', '')
 
     start_date = str(TSSes[18][1]).split()[0]
     cols = ['Form', 'Fatigue', 'Fitness', 'TSS']
 
-    traces = [go.Scatter(y=TL_df[col], x=TL_df['time'], name=col) if not col == 'TSS'
-              else go.Scatter(y=TL_df[col], x=TL_df['time'], name=col, text=TL_df['text']) for col in cols]
+    traces = [go.Scatter(y=TL_df[col], x=TL_df.index, name=col) if not col == 'TSS'
+              else go.Scatter(y=TL_df[col], x=TL_df.index, name=col, text=TL_df['text'], line=dict(width=1)) for col in
+              cols]
 
     data = traces
     layout = go.Layout(
@@ -286,8 +290,11 @@ def plot_training_loads(date=None, user_id=None):
                 ay=-150
             )],
         xaxis=dict(
-            range=[TL_df['time'][18], TL_df['time'].max()],
-            type='date')
+            range=[TL_df.index[-90], TL_df.index.max()],
+            type='date'),
+        yaxis=dict(
+            range=[-30, 150]
+        )
     )
     fig = go.Figure(data=data, layout=layout)
 
@@ -431,8 +438,7 @@ def analize_run(df):
 def training_loads(TSSes, window):
     """TSSes must be a list of tuples. t[0] is tss and t[0] is timestamp of the tss """
     TLs = []
-    for i in TSSes:
-        w = list(map(lambda a: (a[0], i[1] >= a[1] and i[1] - a[1] < timedelta(window)), TSSes))
-        filtered_w = list(filter(lambda x: x[1], w))
-        TLs.append([sum(list(map(lambda x: x[0], filtered_w))) / window, i[1]])
+    for n, i in enumerate(TSSes):
+        window_loads = [tss for tss, date in TSSes[n-window + 1: n + 1]]
+        TLs.append([sum(window_loads) / window, i[1]])
     return TLs

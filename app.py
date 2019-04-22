@@ -34,6 +34,7 @@ cache = Cache(app.server, config={
     'CACHE_TYPE': 'redis',
     'CACHE_REDIS_URL': os.environ.get('REDIS_URL', '')
 })
+cache.clear()
 timeout = 86400
 
 colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
@@ -258,7 +259,7 @@ def update_figure3(clickData, user):
     else:
         selected_date = str(get_training_summary(user_id=user)[-1]['time'])
     filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
-    return plot_training_loads(selected_date, user_id=user).to_dict()
+    return plot_training_loads(selected_date.split(' ')[0], user_id=user).to_dict()
 
 
 @app.callback(
