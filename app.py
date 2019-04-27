@@ -275,7 +275,6 @@ def display_click_data(clickData):
     Output('graph4', 'figure'),
     [Input('week-start-dropdown', 'value'), Input('week-end-dropdown', 'value')],
     [_user])
-@cache.memoize(timeout=timeout)
 def update_figure4(start, end, user):
     df = pd.DataFrame(get_training_summary(user_id=user))
     return heat_map_running(df, start, end).to_dict()
