@@ -249,12 +249,23 @@ def df_run(run):
     return df
 
 
-def plot_training_loads(date=None, user_id=None):
-    TL_df = pd.DataFrame(get_training_summary(user_id=user_id))
-    TL_df['date'] = TL_df.time.map(lambda x: x.date())
-    TL_df = TL_df.groupby('date').sum().reindex(pd.date_range(min(TL_df.date), datetime.now().date() + timedelta(8)),
-                                                fill_value=0)
-    TSSes = [(b, a) for a, b in TL_df.TSS.iteritems()]
+def plot_training_loads(date=None, user_id=None, plan=False, future_dates=8, TSSes=None, TL_df=None):
+    if plan:
+        range_start = -1 * (future_dates + 5)
+        ann_text = 'Today'
+    else:
+        range_start = -90
+        ann_text = 'Selected Date'
+    if TSSes is None:
+        TL_df = pd.DataFrame(get_training_summary(user_id=user_id))
+        TL_df['date'] = TL_df.time.map(lambda x: x.date())
+        TL_df = TL_df.groupby('date').sum().reindex(pd.date_range(min(TL_df.date), datetime.now().date() + timedelta(future_dates)),
+                                                    fill_value=0)
+        TSSes = [(b, a) for a, b in TL_df.TSS.iteritems()]
+        TL_df['text'] = TL_df.Distance.round(2).astype('str') + ' km<br>' + TL_df.duration.round(2).astype(
+            'str') + ' mins'
+        TL_df.text = TL_df.text.replace('0.0 km<br>0.0 mins', '')
+
 
     CTL = pd.DataFrame(training_loads(TSSes, 42), columns=['CTL', 'time']).groupby('time').sum().reindex(
         pd.date_range(min(TL_df.index), max(TL_df.index)), fill_value=0)
@@ -263,8 +274,6 @@ def plot_training_loads(date=None, user_id=None):
     TL_df['Fatigue'] = ATL.ATL
     TL_df['Fitness'] = CTL.CTL
     TL_df['Form'] = TL_df.Fitness - TL_df.Fatigue
-    TL_df['text'] = TL_df.Distance.round(2).astype('str') + ' km<br>' + TL_df.duration.round(2).astype('str') + ' mins'
-    TL_df.text = TL_df.text.replace('0.0 km<br>0.0 mins', '')
 
     start_date = str(TSSes[18][1]).split()[0]
     cols = ['Form', 'Fatigue', 'Fitness', 'TSS']
@@ -287,14 +296,15 @@ def plot_training_loads(date=None, user_id=None):
                 y=-0,
                 xref='x',
                 yref='y',
-                text='Selected Run',
+                text=ann_text,
                 showarrow=True,
                 arrowhead=0,
+                arrowwidth=1,
                 ax=0,
                 ay=-150
             )],
         xaxis=dict(
-            range=[TL_df.index[-90], TL_df.index.max()],
+            range=[TL_df.index[range_start], TL_df.index.max()],
             type='date'),
         yaxis=dict(
             range=[-30, 150]

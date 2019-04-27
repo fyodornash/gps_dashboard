@@ -1,0 +1,6 @@
+.align-top {
+    display: inline-block;
+    margin-top: 0px;
+    position: relative;
+    vertical-align: top;
+}

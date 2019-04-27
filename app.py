@@ -5,6 +5,7 @@ from garmin_tools import *
 from time import time
 import json
 from flask_caching import Cache
+import pandas as pd
 
 import dash
 from dash.dependencies import Input, Output, State
@@ -52,52 +53,89 @@ styles = {
     }
 }
 
-
+def add_workout_component():
+    return html.Div([
+        html.Div(
+            className='ten columns',
+            children=[
+                html.H4('Date: ', className='align-top'),
+                dcc.DatePickerSingle(
+                    id='workout-date',
+                    min_date_allowed=datetime.now(),
+                    max_date_allowed=datetime(2111, 1, 1),
+                    initial_visible_month=datetime.now(),
+                    date=str(datetime.now()),
+                    className='align-top',
+                    with_portal=True,
+                    style=dict(marginLeft=10)
+                ),
+                html.H4('Stress: ', className='align-top', style=dict(paddingLeft=30)),
+                dcc.Input(id='workout-intensity', className='align-top', style=dict(maxWidth=50, marginLeft=10)),
+                html.Button(id='workout-add-button', children='Add Workout', style=dict(marginLeft=30))
+            ]
+        )
+    ])
 
 
 print('creating the app layout')
-app.layout = html.Div([
-    html.Div([
-        dcc.Dropdown(id='user-dropdown', value='michael', className='two columns'),
-        dcc.Markdown(id='stress-md', className="ten columns")], style={"text-align": "center"}),
-    html.Div([
-        html.Div(
-            dcc.Graph(
-                id='graph-with-dropdown'
-            ), className="six columns"),
-        html.Div(
-            dcc.Graph(
-                id='graph2-with-dropdown'
-            ),className="six columns")]),
-    html.Div([
-        html.Div(
-            dcc.Graph(id='graph4'),
-            className='nine columns'),
-        html.Div([
-            dcc.Markdown(dedent("""
-                **Selected Run**
-            """)),
-            dcc.Markdown(id='click-data'),
-            dcc.Markdown(dedent("""
-
-                **From:**
-            """)),
-            dcc.Dropdown(
-                id='week-start-dropdown',
-            ),
-            dcc.Markdown(dedent("""
-
-                **To:**
-            """)),
-            dcc.Dropdown(
-                id='week-end-dropdown',
-            )
-        ], className='three columns')], className='twelve columns')
-    ,
-    html.Div(dcc.Graph(id='graph3'),
-             className='twelve columns')
-
-])
+app.layout = html.Div(
+    dcc.Tabs(
+        id='Tabs',
+        children=[
+            dcc.Tab(id='training', label='Train', children=[
+                html.Div([
+                    dcc.Dropdown(id='user-dropdown', value='michael', className='two columns'),
+                    dcc.Markdown(id='stress-md', className="ten columns")], style={"text-align": "center"}),
+                html.Div([
+                    html.Div(
+                        dcc.Graph(
+                            id='graph-with-dropdown'
+                        ), className="six columns"),
+                    html.Div(
+                        dcc.Graph(
+                            id='graph2-with-dropdown'
+                        ),className="six columns")]),
+                html.Div([
+                    html.Div(
+                        dcc.Graph(id='graph4'),
+                        className='nine columns'),
+                    html.Div([
+                        dcc.Markdown(dedent("""
+                            **Selected Run**
+                        """)),
+                        dcc.Markdown(id='click-data'),
+                        dcc.Markdown(dedent("""
+            
+                            **From:**
+                        """)),
+                        dcc.Dropdown(
+                            id='week-start-dropdown',
+                        ),
+                        dcc.Markdown(dedent("""
+            
+                            **To:**
+                        """)),
+                        dcc.Dropdown(
+                            id='week-end-dropdown',
+                        )
+                    ], className='three columns')], className='twelve columns')
+                ,
+                html.Div(dcc.Graph(id='graph3'),
+                         className='twelve columns')
+            ]),
+            dcc.Tab(id='planning', label='Plan', children=[
+                dcc.Graph(
+                    id='plan-training',
+                    figure=plot_training_loads(
+                        datetime.now().strftime('%Y-%m-%d'),
+                        user_id='michael',
+                        plan=True
+                    ).to_dict()
+                ),
+                add_workout_component()
+            ])
+        ])
+)
 
 # states to use
 _user = State('user-dropdown', 'value')
@@ -288,6 +326,28 @@ def update_figure4(start, end, user):
 
 
 app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/dZVMbK.css'})
+
+
+@app.callback(Output('plan-training', 'figure'),
+              [Input('workout-add-button', 'n_clicks')],
+              [State('plan-training', 'figure'), State('workout-date', 'date'), State('workout-intensity', 'value')])
+def add_workout(n, fig, date, intensity):
+    if fig is None or n is None:
+        dash.exceptions.PreventUpdate
+    else:
+        if intensity is None:
+            intensity = 0
+        else:
+            intensity = int(intensity)
+        TSS_trace = fig['data'][-1]
+        print(TSS_trace['x'].index(date.split(' ')[0]), TSS_trace['y'])
+        print(date.split(' ')[0])
+        dates = fig['data'][-1]['x']
+        TSSes = fig['data'][-1]['y']
+        text = fig['data'][-1]['text']
+        TSSes[dates.index(date.split(' ')[0])] = intensity
+        TL_df = pd.DataFrame(dict(TSS=TSSes, text=text, date=dates)).set_index('date')
+    return plot_training_loads(datetime.now().date(), 'michael', plan=True, TSSes=list(zip(TSSes, dates)), TL_df=TL_df)
 
 if __name__ == '__main__':
     app.run_server(debug=True)
