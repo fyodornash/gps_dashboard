@@ -272,11 +272,15 @@ def plot_training_loads(date=None, user_id=None):
     traces = [go.Scatter(y=TL_df[col], x=TL_df.index, name=col) if not col == 'TSS'
               else go.Scatter(y=TL_df[col], x=TL_df.index, name=col, text=TL_df['text'], line=dict(width=1)) for col in
               cols]
+    zones = [
+        go.Scatter(x=[TL_df.index.min(), TL_df.index.max()], y=[-30, -30], mode='lines', line=dict(color='#fbfad3'), hoverinfo='none', showlegend=False),
+        go.Scatter(x=[TL_df.index.min(), TL_df.index.max()], y=[-10, -10], mode='lines', line=dict(color='#fbfad3'), hoverinfo='none', showlegend=False, fill='tonexty',)
+    ]
 
-    data = traces
+    data = zones + traces
     layout = go.Layout(
         title='Training Loads',
-        colorway=colors,
+        colorway=['#fbfad3', '#fbfad3'] + colors,
         annotations=[
             dict(
                 x=date,
