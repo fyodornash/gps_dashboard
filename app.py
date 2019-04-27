@@ -39,6 +39,10 @@ cache = Cache(app.server, config={
 cache.clear()
 timeout = 86400
 
+@cache.memoize(timeout=timeout*30)
+def cached_training_summary(*args, **kwargs):
+    return get_training_summary(*args, **kwargs)
+
 colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
 
 print('finished')
@@ -47,6 +51,8 @@ styles = {
         'border': 'thin lightgrey solid'
     }
 }
+
+
 
 
 print('creating the app layout')
@@ -108,7 +114,7 @@ def set_users(_):
     [Input('week-end-dropdown', 'id')],
     [_user])
 def set_wed_value(_, user):
-    df = pd.DataFrame(get_training_summary(user_id=user))
+    df = pd.DataFrame(cached_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = list(df.week.unique())
     return len(weeks) - 1
@@ -119,7 +125,7 @@ def set_wed_value(_, user):
     [Input('week-start-dropdown', 'id')],
     [_user])
 def set_wed_value(_, user):
-    df = pd.DataFrame(get_training_summary(user_id=user))
+    df = pd.DataFrame(cached_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = list(df.week.unique())
     return len(weeks) - 4
@@ -130,7 +136,7 @@ def set_wed_value(_, user):
     [Input('week-end-dropdown', 'value')],
     [_user])
 def update_dropdown(week, user):
-    df = pd.DataFrame(get_training_summary(user_id=user))
+    df = pd.DataFrame(cached_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = sorted(list(df.week.unique()))
     return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
@@ -141,7 +147,7 @@ def update_dropdown(week, user):
     [Input('week-start-dropdown', 'value')],
     [_user])
 def update_dropdown(week, user):
-    df = pd.DataFrame(get_training_summary(user_id=user))
+    df = pd.DataFrame(cached_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = sorted(list(df.week.unique()))
     return [{'label': week, 'value': n} for n, week in enumerate(weeks)]
@@ -156,7 +162,7 @@ def update_figure(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+        selected_date = str(cached_training_summary(user_id=user)[-1]['time'])
     filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
     traces = []
     for i, color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])), colors):
@@ -205,7 +211,7 @@ def update_output_md(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+        selected_date = str(cached_training_summary(user_id=user)[-1]['time'])
     filtered_df, _, _, run = search_run(user_id=user, time=selected_date)
     if run.get('TSS'):
         return dedent('''
@@ -224,7 +230,7 @@ def update_figure2(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+        selected_date = str(cached_training_summary(user_id=user)[-1]['time'])
     filtered_df, filtered_speed, filtered_hr, _ = search_run(user_id=user, time=selected_date)
 
     traces = []
@@ -259,7 +265,7 @@ def update_figure3(clickData, user):
     if clickData:
         selected_date = clickData['points'][0]['text'].split('<br>')[2]
     else:
-        selected_date = str(get_training_summary(user_id=user)[-1]['time'])
+        selected_date = str(cached_training_summary(user_id=user)[-1]['time'])
     filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
     return plot_training_loads(selected_date.split(' ')[0], user_id=user).to_dict()
 
@@ -275,8 +281,9 @@ def display_click_data(clickData):
     Output('graph4', 'figure'),
     [Input('week-start-dropdown', 'value'), Input('week-end-dropdown', 'value')],
     [_user])
+@cache.memoize(timeout=timeout)
 def update_figure4(start, end, user):
-    df = pd.DataFrame(get_training_summary(user_id=user))
+    df = pd.DataFrame(cached_training_summary(user_id=user))
     return heat_map_running(df, start, end).to_dict()
 
 
