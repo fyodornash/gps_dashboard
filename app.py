@@ -124,7 +124,7 @@ def set_wed_value(_, user):
     Output('week-start-dropdown', 'value'),
     [Input('week-start-dropdown', 'id')],
     [_user])
-def set_wed_value(_, user):
+def set_wes_value(_, user):
     df = pd.DataFrame(cached_training_summary(user_id=user))
     df = add_weeks(df)
     weeks = list(df.week.unique())

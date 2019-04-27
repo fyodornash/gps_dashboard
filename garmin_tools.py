@@ -371,10 +371,10 @@ def get_training_log_with_text_and_date(week_df):
 def add_weeks(df):
     df['text'] = df.Distance.round(2).astype('str') + ' kms<br>' + df.duration.round(2).astype(
         'str') + ' mins' + '<br>' + df.time.astype('str')
-    df['week'] = df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year, x.week, 1), '%Y-%W-%w')).astype(
+    df['week'] = df.time.apply(lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year, x.week -1, 1), '%Y-%W-%w')).astype(
         'str')
     df['week2'] = 'Week of ' + df.time.apply(
-        lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year, x.week, 1), '%Y-%W-%w')).apply(
+        lambda x: datetime.strptime('{0}-{1}-{2}'.format(x.year, x.week -1, 1), '%Y-%W-%w')).apply(
         lambda y: y.strftime('%B %-d'))
     return df
 
