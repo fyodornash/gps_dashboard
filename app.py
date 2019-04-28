@@ -40,7 +40,7 @@ cache = Cache(app.server, config={
 cache.clear()
 timeout = 86400
 
-@cache.memoize(timeout=timeout*30)
+@cache.memoize(timeout=3600)
 def cached_training_summary(*args, **kwargs):
     return get_training_summary(*args, **kwargs)
 
