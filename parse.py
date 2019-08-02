@@ -34,6 +34,14 @@ def create_df(clean_dps):
         df['Stride Rate'] = stride_rate
     except KeyError:
         print('no cadence data')
+
+    try:
+        lat = [float(element['Position'].getchildren()[0].text) for element in clean_dps]
+        lon = [float(element['Position'].getchildren()[1].text) for element in clean_dps]
+        df['lat'] = lat
+        df['lon'] = lon
+    except KeyError:
+        print('no position data')
     return df
 
 
