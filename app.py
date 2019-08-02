@@ -126,11 +126,6 @@ app.layout = html.Div(
             dcc.Tab(id='planning', label='Plan', children=[
                 dcc.Graph(
                     id='plan-training',
-                    figure=plot_training_loads(
-                        datetime.now().strftime('%Y-%m-%d'),
-                        user_id='michael',
-                        plan=True
-                    ).to_dict()
                 ),
                 add_workout_component()
             ])
@@ -333,7 +328,11 @@ app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/dZVMbK.css'
               [State('plan-training', 'figure'), State('workout-date', 'date'), State('workout-intensity', 'value')])
 def add_workout(n, fig, date, intensity):
     if fig is None or n is None:
-        dash.exceptions.PreventUpdate
+        return plot_training_loads(
+            datetime.now().strftime('%Y-%m-%d'),
+            user_id='michael',
+            plan=True
+        ).to_dict()
     else:
         if intensity is None:
             intensity = 0
@@ -350,4 +349,4 @@ def add_workout(n, fig, date, intensity):
     return plot_training_loads(datetime.now().date(), 'michael', plan=True, TSSes=list(zip(TSSes, dates)), TL_df=TL_df)
 
 if __name__ == '__main__':
-    app.run_server(debug=True)
+    app.run_server(debug=True, port=8072)
