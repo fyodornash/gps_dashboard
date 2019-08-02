@@ -148,11 +148,11 @@ def get_speed_zones_minutes(df):
 
 def get_intervals(df):
     s60 = df.Speed.diff(-60)
-    df['s60'] =s60
+    df['s60'] = s60
     in_interval = False
     last_start = -1
     intervals = []
-    for i, d, _, _, s, _, _, time, s60 in df.itertuples():
+    for i, d, s, time, s60 in df[['Distance', 'Speed', 'time', 's60']].itertuples():
         if s60 < -5 and df.iloc[i+60].Speed >14 and not in_interval:
             in_interval = True
             last_start = i + 60
