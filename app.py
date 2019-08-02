@@ -203,7 +203,7 @@ def update_figure(clickData, user):
         selected_date = str(cached_training_summary(user_id=user)[-1]['time'])
     filtered_df, _, _, _ = search_run(user_id=user, time=selected_date)
     traces = []
-    for i, color in zip(list(set([d for d in filtered_df.columns]) - set(['Time', 'time', 'Distance'])), colors):
+    for i, color in zip(list(set([d for d in filtered_df.columns]) - {'Time', 'time', 'Distance', 'lat', 'lon'}), colors):
         traces.append(go.Scatter(
             x=filtered_df['Distance'],
             y=filtered_df[i],
