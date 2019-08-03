@@ -12,20 +12,36 @@ from db_utils import mongo_decorator
 
 pd.core.common.is_list_like = pd.api.types.is_list_like
 
-colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
-MAXHR = 190
-LTHR = 175
-LT_SPEED = 14.0
-JF_SPEED_BINS = LT_SPEED / np.array([5, 1.29, 1.14, 1.06, 0.99, 0.97, 0.9, 0.5])
 
-RHR = 50
-JF_BINS = np.array([0, 0.85, 0.9, 0.95, 1.00, 1.03, 1.06, 1.5]) * LTHR
+@mongo_decorator
+def get_user_data(db=None, user_id=None):
+    return db.runners.find_one(user_id=user_id)
+
+
+@mongo_decorator
+def add_user_data(db=None, user_id='michael', **kwargs):
+    db.running.find_one_and_update(dict(user_id=user_id), dict(user_id=user_id, **kwargs), upsert=True)
+
+
+
+
+colors = ['#222222', '#be3030', '#ff7100', '#7b3c3c', '#db5f29']
+
+
+# LTHR = 175
+# LT_SPEED = 14.0
+
+# JF_SPEED_BINS = LT_SPEED / np.array([5, 1.29, 1.14, 1.06, 0.99, 0.97, 0.9, 0.5])
+get_jf_speed_bins = lambda LT_SPEED: LT_SPEED / np.array([5, 1.29, 1.14, 1.06, 0.99, 0.97, 0.9, 0.5])
+
+# JF_BINS = np.array([0, 0.85, 0.9, 0.95, 1.00, 1.03, 1.06, 1.5]) * LTHR
+get_jf_hr_bins = lambda LTHR: LTHR * np.array([0, 0.85, 0.9, 0.95, 1.00, 1.03, 1.06, 1.5])
+
 JF_ZONES = ['Zone 1', 'Zone 2', 'Zone 3', 'Zone 4', 'Zone 5a', 'Zone 5b', 'Zone 5c']
 HR_TSS = {'Zone 1': 30, 'Zone 2': 55, 'Zone 3': 70, 'Zone 4': 80, 'Zone 5a': 100, 'Zone 5b': 120, 'Zone 5c': 140}
 CTL_WINDOW = 42
 ATL_WINDOW = 7
 
-JF_BINS
 
 failed_track = []
 
@@ -126,12 +142,18 @@ def zones_text_pace():
     return [create_zones_decreasing(a, b) for a, b in zip(t, t[1:])]
 
 
-def get_hr_zones(df):
+def get_hr_zones(df, user_data=None):
+    if not user_data:
+        user_data = get_user_data()
+    JF_BINS = get_jf_hr_bins(user_data['LTHR'])
     y = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
     return y.value_counts().reindex(JF_ZONES)
 
 
-def get_speed_zones(df):
+def get_speed_zones(df, user_data=None):
+    if not user_data:
+        user_data = get_user_data()
+    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
     y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
     return y.value_counts().reindex(JF_ZONES)
 
@@ -141,7 +163,10 @@ def get_hr_zones_minutes(df):
     return dict(y.value_counts().reindex(JF_ZONES) / 60)
 
 
-def get_speed_zones_minutes(df):
+def get_speed_zones_minutes(df, user_data=None):
+    if not user_data:
+        user_data = get_user_data()
+    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
     y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
     return dict(y.value_counts().reindex(JF_ZONES) / 60)
 
@@ -162,7 +187,10 @@ def get_intervals(df):
     return intervals
 
 
-def plot_hr_zones(df):
+def plot_hr_zones(df, user_data=None):
+    if not user_data:
+        user_data = get_user_data()
+    JF_BINS = get_jf_hr_bins(user_data['LTHR'])
     y = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
     trace1 = go.Bar(y=(y.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES)
     data = [trace1]
@@ -172,7 +200,10 @@ def plot_hr_zones(df):
     return
 
 
-def plot_speed_zones(df):
+def plot_speed_zones(df, user_data=None):
+    if not user_data:
+        user_data = get_user_data()
+    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
     y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
     trace1 = go.Bar(y=(y.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, text=zones_text_pace())
     data = [trace1]
@@ -182,7 +213,11 @@ def plot_speed_zones(df):
     return
 
 
-def plot_speed_vs_hr(df):
+def plot_speed_vs_hr(df, user_data=None):
+    if not user_data:
+        user_data = get_user_data()
+    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
+    JF_BINS = get_jf_hr_bins(user_data['LTHR'])
     speed = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
     hr = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
     trace1 = go.Bar(y=(speed.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, name='Pace', text=zones_text_pace())
