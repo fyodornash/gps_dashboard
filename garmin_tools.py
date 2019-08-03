@@ -350,21 +350,6 @@ def plot_training_loads(date=None, user_id=None, plan=False, future_dates=8, TSS
     return fig
 
 
-def update_TSSes(df):
-    TSSes = get_TSSes()
-    if df.Time[0] in [t[1] for t in TSSes]:
-        print('No update was necessary to TSSes')
-    else:
-        t = TSS(df)
-        print('adding stress score of {0:.2f} from run at {1} to TSSes'.format(t, str(df.Time[0])))
-        TSSes.append([t, df.Time[0]])
-        x = pd.DataFrame(TSSes)
-        x.to_csv('/home/michael/garmin/michael_data/test.csv', index=False, header=False)
-        record = create_record(df)
-        insert_runs_mongo([record])
-        post_runs_gcloud(record)
-
-
 @mongo_decorator
 def insert_runs_mongo(records):
     result = db.runsy.insert_many(records)
@@ -456,24 +441,6 @@ def heat_map_running(df, start, end):
     layout = go.Layout(title='Training Stress Calendar', margin=dict(l=120))
     data = [trace]
     return go.Figure(data=data, layout=layout)
-
-
-def create_record(df):
-    record = {}
-    record['time'] = df.Time[0]
-    df.Time = pd.DatetimeIndex(df.Time).astype(np.int64) // 10 ** 9
-    record['df'] = df.to_dict('records')
-    record['speed_zones'] = get_speed_zones_minutes(df)
-    record['user_data'] = {'max_hr': MAXHR, 'lt_hr': LTHR, 'lt_speed': LT_SPEED}
-
-    if 'Heartrate' in df.columns:
-        tss = TSS(df)
-        record['TSS'] = tss
-        record['ATL'] = training_loads(tss, ATL_WINDOW)
-        record['CTL'] = training_loads(tss, CTL_WINDOW)
-        record['hr_zones'] = get_hr_zones_minutes(df)
-        record['cardiac_drift'] = cardiac_drift(df)
-    return record
 
 
 def analize_run(df):
