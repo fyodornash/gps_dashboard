@@ -41,6 +41,10 @@ cache.clear()
 timeout = 86400
 
 @cache.memoize(timeout=3600)
+def cached_get_user_data(*args, **kwargs):
+    return get_jf_hr_bins(*args, **kwargs)
+
+@cache.memoize(timeout=3600)
 def cached_training_summary(*args, **kwargs):
     return get_training_summary(*args, **kwargs)
 
@@ -273,12 +277,12 @@ def update_figure2(clickData, user):
         x=zones,
         y=[filtered_speed[zone] for zone in zones],
         name='Pace Zones',
-        text=zones_text_pace(),
+        text=zones_text_pace(user_id=user),
         marker=dict(color=colors[0])
     ))
     if filtered_hr:
         traces.append(go.Bar(y=[filtered_hr[zone] for zone in zones],
-                             x=zones, name='HR', text=zones_text_hr(),
+                             x=zones, name='HR', text=zones_text_hr(user_id=user),
                              marker=dict(color=colors[1])))
 
     return go.Figure({

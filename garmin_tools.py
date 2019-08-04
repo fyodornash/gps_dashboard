@@ -15,7 +15,7 @@ pd.core.common.is_list_like = pd.api.types.is_list_like
 
 @mongo_decorator
 def get_user_data(db=None, user_id=None):
-    return db.runners.find_one(user_id=user_id)
+    return db.runners.find_one(dict(user_id=user_id))
 
 
 @mongo_decorator
@@ -121,7 +121,11 @@ def create_zones_increasing(a, b):
     return '(' + ' - '.join([a, b]) + ') bpm'
 
 
-def zones_text_hr():
+def zones_text_hr(user_data=None, user_id=None):
+    assert user_id is not None
+    if not user_data:
+        user_data = get_user_data(user_id=user_id)
+    JF_BINS = get_jf_hr_bins(user_data['LTHR'])
     r = list(JF_BINS.astype('int').astype('str'))
     r[0], r[-1] = '', ''
     return [create_zones_increasing(a, b) for a, b in zip(r, r[1:])]
@@ -135,40 +139,14 @@ def create_zones_decreasing(a, b):
     return '(' + ' - '.join([a, b]) + ') min/km'
 
 
-def zones_text_pace():
+def zones_text_pace(user_data=None, user_id=None):
+    if not user_data:
+        user_data = get_user_data(user_id=user_id)
+    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED'])
     minutes, seconds = divmod((3600 / JF_SPEED_BINS).astype('int'), 60)
     t = [("%02d:%02d" % (m, s)) for m, s in zip(list(minutes), list(seconds))]
     t[0], t[-1] = '', ''
     return [create_zones_decreasing(a, b) for a, b in zip(t, t[1:])]
-
-
-def get_hr_zones(df, user_data=None):
-    if not user_data:
-        user_data = get_user_data()
-    JF_BINS = get_jf_hr_bins(user_data['LTHR'])
-    y = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
-    return y.value_counts().reindex(JF_ZONES)
-
-
-def get_speed_zones(df, user_data=None):
-    if not user_data:
-        user_data = get_user_data()
-    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
-    y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
-    return y.value_counts().reindex(JF_ZONES)
-
-
-def get_hr_zones_minutes(df):
-    y = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
-    return dict(y.value_counts().reindex(JF_ZONES) / 60)
-
-
-def get_speed_zones_minutes(df, user_data=None):
-    if not user_data:
-        user_data = get_user_data()
-    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
-    y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
-    return dict(y.value_counts().reindex(JF_ZONES) / 60)
 
 
 def get_intervals(df):
@@ -187,43 +165,18 @@ def get_intervals(df):
     return intervals
 
 
-def plot_hr_zones(df, user_data=None):
+def plot_speed_vs_hr(df, user_data=None, user_id=None):
+    assert user_id is not None
     if not user_data:
-        user_data = get_user_data()
-    JF_BINS = get_jf_hr_bins(user_data['LTHR'])
-    y = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
-    trace1 = go.Bar(y=(y.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES)
-    data = [trace1]
-    layout = go.Layout(title='HR Zones')
-    fig = go.Figure(data=data, layout=layout)
-    py.plot(fig, filename='basic-bar')
-    return
-
-
-def plot_speed_zones(df, user_data=None):
-    if not user_data:
-        user_data = get_user_data()
-    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
-    y = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
-    trace1 = go.Bar(y=(y.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, text=zones_text_pace())
-    data = [trace1]
-    layout = go.Layout(title='Speed Zones')
-    fig = go.Figure(data=data, layout=layout)
-    py.plot(fig, filename='basic-bar')
-    return
-
-
-def plot_speed_vs_hr(df, user_data=None):
-    if not user_data:
-        user_data = get_user_data()
-    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED_DATA'])
+        user_data = get_user_data(user_id=user_id)
+    JF_SPEED_BINS = get_jf_speed_bins(user_data['LT_SPEED'])
     JF_BINS = get_jf_hr_bins(user_data['LTHR'])
     speed = pd.Series(pd.cut(df.Speed, bins=JF_SPEED_BINS, labels=JF_ZONES, retbins=False))
     hr = pd.Series(pd.cut(df.Heartrate, bins=JF_BINS, labels=JF_ZONES, retbins=False))
-    trace1 = go.Bar(y=(speed.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, name='Pace', text=zones_text_pace())
+    trace1 = go.Bar(y=(speed.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, name='Pace', text=zones_text_pace(user_id=user_id))
     trace2 = go.Bar(y=(hr.value_counts().reindex(JF_ZONES) / 60), x=JF_ZONES, name='HR')
     data = [trace1, trace2]
-    layout = go.Layout(title='Pace and HR Zones <br>Stress Score : {0:.2f}<br>Cardiac Drift :{1:.2f}'.format(TSS(df),
+    layout = go.Layout(title='Pace and HR Zones <br>Stress Score : {0:.2f}<br>Cardiac Drift :{1:.2f}'.format(TSS(df, user_id),
                                                                                                              cardiac_drift(
                                                                                                                  df)),
                        barmode='group')
@@ -232,8 +185,8 @@ def plot_speed_vs_hr(df, user_data=None):
     return fig
 
 
-def TSS(df):
-    x = get_hr_zones(df)
+def TSS(df, user_id):
+    x = get_hr_zones(df, user_id=user_id)
     TSS = 0
     for zone in x.keys():
         TSS += HR_TSS[zone] * x[zone] / 3600
@@ -441,14 +394,6 @@ def heat_map_running(df, start, end):
     layout = go.Layout(title='Training Stress Calendar', margin=dict(l=120))
     data = [trace]
     return go.Figure(data=data, layout=layout)
-
-
-def analize_run(df):
-    print('Stress Score : {0:.2f}'.format(TSS(df)))
-    print('Cardiac Drift : {0:.2f}'.format(cardiac_drift(df)))
-    plot_speed_vs_hr(df)
-    TSSes = get_TSSes()
-    plot_training_loads(TSSes)
 
 
 def training_loads(TSSes, window):
