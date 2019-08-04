@@ -237,7 +237,7 @@ def df_run(run):
     return df
 
 
-def plot_training_loads(date=None, user_id=None, plan=False, future_dates=8, TSSes=None, TL_df=None):
+def plot_training_loads(date=None, user_id=None, plan=False, future_dates=31, TSSes=None, TL_df=None):
     if plan:
         range_start = -1 * (future_dates + 5)
         ann_text = 'Today'
