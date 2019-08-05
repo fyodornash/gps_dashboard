@@ -240,8 +240,13 @@ def df_run(run):
 def plot_training_loads(date=None, user_id=None, plan=False, future_dates=31, TSSes=None, TL_df=None):
     if plan:
         range_start = -1 * (future_dates + 5)
+
+        # I don't want all those extra dates to make the graph look aweful.
+        len_future_view = 7
+        range_end = -1 * (future_dates - len_future_view) if future_dates > len_future_view else -1
         ann_text = 'Today'
     else:
+        range_end = -1
         range_start = -90
         ann_text = 'Selected Date'
     if TSSes is None:
@@ -276,6 +281,7 @@ def plot_training_loads(date=None, user_id=None, plan=False, future_dates=31, TS
 
     data = zones + traces
     layout = go.Layout(
+        uirevision=True,
         title='Training Loads',
         colorway=['#fbfad3', '#fbfad3'] + colors,
         annotations=[
@@ -292,7 +298,7 @@ def plot_training_loads(date=None, user_id=None, plan=False, future_dates=31, TS
                 ay=-150
             )],
         xaxis=dict(
-            range=[TL_df.index[range_start], TL_df.index.max()],
+            range=[TL_df.index[range_start], TL_df.index[range_end]],
             type='date'),
         yaxis=dict(
             range=[-30, 150]

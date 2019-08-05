@@ -39,6 +39,7 @@ cache = Cache(app.server, config={
 })
 cache.clear()
 timeout = 86400
+WEEKDAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun']
 
 @cache.memoize(timeout=3600)
 def cached_get_user_data(*args, **kwargs):
@@ -56,6 +57,18 @@ styles = {
         'border': 'thin lightgrey solid'
     }
 }
+
+
+def create_day_input(day):
+    return html.Div(
+        className='align-top',
+        style={'paddingRight': 50},
+        children=[
+            html.H6(day, style=dict(textAlign='center')),
+            html.Div(dcc.Input(id='{}-input'.format(day), style=dict(maxWidth=50)))
+        ]
+    )
+
 
 def add_workout_component():
     return html.Div([
@@ -75,7 +88,20 @@ def add_workout_component():
                 ),
                 html.H4('Stress: ', className='align-top', style=dict(paddingLeft=30)),
                 dcc.Input(id='workout-intensity', className='align-top', style=dict(maxWidth=50, marginLeft=10)),
-                html.Button(id='workout-add-button', children='Add Workout', style=dict(marginLeft=30))
+                html.Div(
+                    className='row',
+                    children=[
+                        html.Div(dcc.Dropdown(
+                            id='training-week-dropdown',
+                            options=[dict(label='Week {}'.format(i), value=i) for i in range(1, 5, 1)],
+                            value=1,
+                        ), className='three columns'),
+                        html.Button(id='workout-add-button', children='Add Workout', className='three columns'),
+                    ]
+                ),
+
+                html.Div(
+                    [] + [create_day_input(day) for day in WEEKDAYS])
             ]
         )
     ])
@@ -322,9 +348,6 @@ def display_click_data(clickData):
 def update_figure4(start, end, user):
     df = pd.DataFrame(cached_training_summary(user_id=user))
     return heat_map_running(df, start, end).to_dict()
-
-
-app.css.append_css({'external_url': 'https://codepen.io/chriddyp/pen/dZVMbK.css'})
 
 
 @app.callback(Output('plan-training', 'figure'),
